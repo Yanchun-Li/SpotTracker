@@ -39,17 +39,19 @@ def calculate_tracking_points():
     global tracking_points
 
     # Calculate the trisection points on the middle vertical line and the midpoint with the left edge
-    top_mid = points[0]
-    bottom_mid = points[3]
-    middle_mid = ((top_mid[0] + bottom_mid[0]) // 2, (top_mid[1] + bottom_mid[1]) // 2)
+    top_mid = points[1]
+    bottom_mid = points[4]
+    right_mid = ((top_mid[0] + bottom_mid[0]) // 2, (top_mid[1] + bottom_mid[1]) // 2)
     
-    top_third = ((2 * top_mid[0] + bottom_mid[0]) // 3, (2 * top_mid[1] + bottom_mid[1]) // 3)
-    bottom_third = ((top_mid[0] + 2 * bottom_mid[0]) // 3, (top_mid[1] + 2 * bottom_mid[1]) // 3)
+    # top_third = ((2 * top_mid[0] + bottom_mid[0]) // 3, (2 * top_mid[1] + bottom_mid[1]) // 3)
+    # bottom_third = ((top_mid[0] + 2 * bottom_mid[0]) // 3, (top_mid[1] + 2 * bottom_mid[1]) // 3)
+    # right_point = ((top_mid[0] + bottom_mid[0]) // 2, )
     
-    left_mid = points[1]
-    left_middle_mid = ((left_mid[0] + middle_mid[0]) // 2, (left_mid[1] + middle_mid[1]) // 2)
+    left_up = points[0]
+    left_bottom = points[5]
+    left_middle_mid = ((left_bottom[0] + left_up[0] + right_mid[0]) // 2, (left_up[1] + left_bottom[1]) // 2)
 
-    tracking_points = [top_third, bottom_third, left_middle_mid]
+    tracking_points = [right_mid, left_middle_mid]
 
 # Initialize the camera
 cap = cv2.VideoCapture(0)

@@ -1,3 +1,6 @@
 opencv-python
 numpy
 math
+pyautogui
+mss
+pygetwindow
