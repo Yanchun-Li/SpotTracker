@@ -1,0 +1,21 @@
+var searchData=
+[
+  ['fb_5fmode_0',['FB_MODE',['../classopto_m_d_c_1_1registers_1_1mre3__registers_1_1_m_r_e3_misc_features.html#a8f6cabee6603826646d7163916a99eb7',1,'optoMDC::registers::mre3_registers::MRE3MiscFeatures']]],
+  ['fe_5fautostart_1',['FE_autostart',['../classopto_m_d_c_1_1registers_1_1mre3__registers_1_1_m_r_e3_board_e_e_p_r_o_m.html#acfcf0c76e2f7e424f80736050c01520e',1,'optoMDC::registers::mre3_registers::MRE3BoardEEPROM']]],
+  ['fe_5fpower_2',['FE_power',['../classopto_m_d_c_1_1registers_1_1mre3__registers_1_1_m_r_e3_misc_features.html#aec7e93716fb12a5d1e129e5a887f6525',1,'optoMDC::registers::mre3_registers::MRE3MiscFeatures']]],
+  ['fe_5fvoltage_3',['FE_voltage',['../classopto_m_d_c_1_1registers_1_1mre3__registers_1_1_m_r_e3_misc_features.html#aae5cad33e2aa02e0fcd37dc648f1ca23',1,'optoMDC.registers.mre3_registers.MRE3MiscFeatures.FE_voltage'],['../classopto_m_d_c_1_1registers_1_1mre3__registers_1_1_m_r_e3_board_e_e_p_r_o_m.html#ab8b5a907d59704720c3c655d76839239',1,'optoMDC.registers.mre3_registers.MRE3BoardEEPROM.FE_voltage']]],
+  ['for_20an_20overview_20of_20all_20of_20the_20available_20systems_20and_20their_20methods_20such_20as_20opticalfeedback_20logger_20and_20vectorpatternunit_4',['For an overview of all of the available systems and their methods such as OpticalFeedback Logger and VectorPatternUnit',['../index.html#systems',1,'Check out the link below for an overview of all of the available systems and their methods (such as OpticalFeedback, Logger, and VectorPatternUnit)'],['../mre3_intro.html#systems_mre3',1,'Check out the link below for an overview of all of the available systems and their methods (such as OpticalFeedback, Logger, and VectorPatternUnit)']]],
+  ['for_20an_20overview_20of_20the_20board_20level_20utility_20commands_20such_20as_20load_20snapshot_5',['For an overview of the Board level utility commands such as load snapshot',['../index.html#utils',1,'Check out the link below for an overview of the Board-level utility commands (such as load snapshot)'],['../mre3_intro.html#utils_mre3',1,'Check out the link below for an overview of the Board-level utility commands (such as load snapshot)']]],
+  ['for_20both_20channels_6',['Setting up operation modes for both channels',['../mre3_intro.html#change_operationmode_mre3',1,'']]],
+  ['for_20controlling_20the_20mr_20e_202_7',['Introduction to optoMDC, a python SDK for controlling the MR-E-2',['../index.html#intro_sec',1,'']]],
+  ['for_20controlling_20the_20mr_20e_203_8',['Python SDK for controlling the MR-E-3',['../mre3_intro.html#intro_section_mre3',1,'']]],
+  ['for_20more_20examples_20see_20the_20page_20below_3a_9',['For More Examples, See The Page Below:',['../index.html#more',1,'']]],
+  ['for_20one_20channel_10',['Setting up operation mode manually for one channel',['../mre3_intro.html#switch_operationmode_oneChannel',1,'']]],
+  ['fpd0_11',['fpd0',['../classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback.html#afe090c95e8ff3298690c5d3a72daf9b2',1,'optoMDC::registers::mre2_registers::OpticalFeedback']]],
+  ['fpd1_12',['fpd1',['../classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback.html#a564ad62db3bd0a1996e7f298a83e5636',1,'optoMDC::registers::mre2_registers::OpticalFeedback']]],
+  ['fpd2_13',['fpd2',['../classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback.html#a6b46153b88324d81a5e92eef399dc230',1,'optoMDC::registers::mre2_registers::OpticalFeedback']]],
+  ['fpd3_14',['fpd3',['../classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback.html#acf31fc8567cd972063e2c7e32fa63b07',1,'optoMDC::registers::mre2_registers::OpticalFeedback']]],
+  ['freq_5fdelta_15',['freq_delta',['../classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_resonant_amplitude_control.html#a03386489eb24f223cbe7655d14127a01',1,'optoMDC::registers::mre2_registers::ResonantAmplitudeControl']]],
+  ['freq_5fshift_16',['freq_shift',['../classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_resonant_amplitude_control.html#a7ec518184797e518f9761f5ff833cb09',1,'optoMDC::registers::mre2_registers::ResonantAmplitudeControl']]],
+  ['freq_5ftol_17',['freq_tol',['../classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_resonant_amplitude_control.html#a30d9808155e27d8cfbf1e5488caf62e8',1,'optoMDC::registers::mre2_registers::ResonantAmplitudeControl']]]
+];
