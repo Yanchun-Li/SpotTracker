@@ -17,7 +17,6 @@ port = "COM4"
 # optoMDCライブラリを通じてデバイスに接続
 mre2 = optoMDC.connect(port=port)
 
-
 # Channel_0 (X軸) の制御モードをXYモード（Closed Loop）に設定
 ch_0 = mre2.Mirror.Channel_0
 ch_0.SetControlMode(optoMDC.Units.XY)
