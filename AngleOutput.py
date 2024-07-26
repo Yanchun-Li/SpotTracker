@@ -10,11 +10,13 @@ d = 50              # depth between the camera and the mirror
 
 def phi(x_rel, frame_shape):
     x = W * (x_rel / (frame_shape[1] / 2))
-    return math.degrees(math.atan((c - x) / l))
+    phi_value = math.degrees(math.atan((c - x) / l))
+    return max(-50, min(50, phi_value))
 
 def theta(y_rel, frame_shape):
     y = H * (y_rel / (frame_shape[0] / 2))
-    return math.degrees(math.atan(y / l))
+    theta_value = math.degrees(math.atan(y / l))
+    return max(-50, min(50, theta_value))
 
 def calculate_tracking_points(points):
     # Calculate the trisection points on the middle vertical line and the midpoint with the left edge
