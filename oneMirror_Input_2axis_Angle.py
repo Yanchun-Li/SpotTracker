@@ -38,12 +38,9 @@ try:
         xy_value_y = clamp(angle_to_xy(-
                                        phi_value), -1, 1)
 
-
         static_input_0.SetXY(xy_value_x)
         static_input_1.SetXY(xy_value_y)
 
-        # 設定後、0.1秒待機
-        time.sleep(0.1)
 except KeyboardInterrupt:
     pass
 
