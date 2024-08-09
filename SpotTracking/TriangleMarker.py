@@ -1,5 +1,5 @@
 import cv2
-import np as numpy
+import numpy as np
 import threading
 
 def get_triangle_center(contour):
