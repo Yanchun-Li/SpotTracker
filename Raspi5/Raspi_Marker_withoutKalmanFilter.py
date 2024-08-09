@@ -11,10 +11,10 @@ picam2.start()
 
 # Variables to store detected centers
 detected_centers = []
-last_detected_centers = [(0, 0), (0, 0)]  # 记录上次检测到的两个圆心位置
+last_detected_centers = [(0, 0), (0, 0)]  # Record the location of the last two detected circle centers
 frame_processed = None
-A_detected = False  # 标记是否检测到A
-B_detected = False  # 标记是否检测到B
+A_detected = False  # Whether A is detected
+B_detected = False  # Whether B is detected
 
 def process_frame():
     global detected_centers, last_detected_centers, frame_processed, A_detected, B_detected
@@ -44,19 +44,19 @@ def process_frame():
             for (x, y, r) in valid_circles:
                 detected_center = (x, y)
 
-                # 根据上次记录的位置，判断当前检测到的是A还是B
+                # Determine whether the current detection is A or B based on the last recorded position
                 if np.linalg.norm(np.array(detected_center) - np.array(last_detected_centers[0])) < np.linalg.norm(np.array(detected_center) - np.array(last_detected_centers[1])):
                     detected_centers.append(detected_center)
-                    A_detected = True  # 标记A被检测到
+                    A_detected = True  
                 else:
                     detected_centers.append(detected_center)
-                    B_detected = True  # 标记B被检测到
+                    B_detected = True  
 
-        # 如果检测到的圆少于2个，使用上次检测到的圆心位置补全
+        # If fewer than 2 circles are detected, the center of the last detected circle is used to complete the list.
         if not A_detected:
-            detected_centers.insert(0, last_detected_centers[0])  # 补充A的位置
+            detected_centers.insert(0, last_detected_centers[0])  # append A's center
         if not B_detected:
-            detected_centers.append(last_detected_centers[1])  # 补充B的位置
+            detected_centers.append(last_detected_centers[1])  # append B's center
 
         # Update last detected centers
         last_detected_centers = detected_centers.copy()

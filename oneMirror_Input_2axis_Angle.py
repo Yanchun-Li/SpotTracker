@@ -1,7 +1,7 @@
 import optoMDC
 import time
 import math
-from AngleOutput import get_phi_theta
+from SpotTracking.AngleOutput import get_phi_theta
 
 # 角度からXY座標への変換関数
 def angle_to_xy(angle):

@@ -25,14 +25,14 @@ class KalmanTracker:
             return median
         return midpoint
 
-# 打开摄像头
+# Open the camera
 cap = cv2.VideoCapture(0)
 
 if not cap.isOpened():
-    print("无法打开摄像头")
+    print("Unable to open camera")
     exit()
 
-# 记录上次更新的中点坐标
+# Record the last updated midpoint coordinates
 trackers = []
 detected_centers = []
 frame_processed = None
@@ -44,11 +44,11 @@ def process_frame():
             continue
 
         frame = frame_processed.copy()
-        # 转换为灰度图像
+        # Convert to grayscale
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         blurred = cv2.GaussianBlur(gray, (5, 5), 0)
         
-        # 使用HoughCircles检测圆形
+        # Detect circles using HoughCircles
         circles = cv2.HoughCircles(blurred, cv2.HOUGH_GRADIENT, dp=1.2, minDist=20, param1=50, param2=30, minRadius=5, maxRadius=50)
         
         detected_centers = []
@@ -62,20 +62,20 @@ def process_frame():
                 if len(trackers) < len(detected_centers) + 1:
                     trackers.append(KalmanTracker())
 
-                # 使用卡尔曼滤波器
+                # Use Kalman filter
                 tracker = trackers[len(detected_centers)]
-                corrected_point = tracker.correct(midpoint)
-                predicted = tracker.predict()
+                corrected_point = tracker.correct(midpoint) # the most accurate position estimate based on both the model and the new measurement
+                predicted = tracker.predict()               # predict where the object will be in the next frame (e.g., for smooth motion tracking)
                 detected_center = (int(predicted[0]), int(predicted[1]))
 
                 detected_centers.append(detected_center)
 
-        # 输出检测到的圆形个数和中点
+        # Output the number of detected circles and midpoints
         print(f"Detected {len(detected_centers)} white circle(s). Centers:", detected_centers)
         for center in detected_centers:
             cv2.circle(frame, center, 5, (0, 0, 255), -1)
 
-# 启动图像处理线程
+# Start the image processing thread
 processing_thread = threading.Thread(target=process_frame)
 processing_thread.daemon = True
 processing_thread.start()
@@ -83,7 +83,7 @@ processing_thread.start()
 while True:
     ret, frame = cap.read()
     if not ret:
-        print("无法接收帧 (stream end?). Exiting ...")
+        print("Unable to receive frame (stream end?). Exiting ...")
         break
 
     frame_processed = frame.copy()
