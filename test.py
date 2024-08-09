@@ -1,29 +1,34 @@
+# import cv2
+# camera = "/base/axi/pcie@120000/rp1/i2c@80000/ov5647@36"
+# pipeline = "libcamerasrc camera-name=%s ! video/x-raw,width=640,height=480,framerate=10/1,format=RGBx ! videoconvert ! videoscale ! video/x-raw,width=640,height=480,format=BGR ! appsink" % (camera)
+# cap = cv2.VideoCapture(pipeline, cv2.CAP_GSTREAMER)
+
+from picamera2 import Picamera2
 import cv2
 
-def list_available_cameras(max_tested=10):
-    available_cameras = []
-    for index in range(max_tested):
-        cap = cv2.VideoCapture(index)
-        if cap.isOpened():
-            available_cameras.append(index)
-            cap.release()
-    return available_cameras
+def main():
+    # Initialize the camera
+    picam2 = Picamera2()
 
-# 列出最多10个可用摄像头
-available_cameras = list_available_cameras()
+    # Configure the camera to preview mode
+    preview_config = picam2.create_preview_configuration()
+    picam2.configure(preview_config)
 
-print("Available camera indices:", available_cameras)
+    # Start the camera
+    picam2.start()
 
-if available_cameras:
-    print(f"Number of available cameras: {len(available_cameras)}")
-    for cam_index in available_cameras:
-        cap = cv2.VideoCapture(cam_index)
-        ret, frame = cap.read()
-        if ret:
-            cv2.imshow(f'Camera {cam_index}', frame)
-        cap.release()
-else:
-    print("No cameras available")
+    # Capture and display the video frames
+    while True:
+        frame = picam2.capture_array()
+        cv2.imshow("Camera Feed", frame)
 
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+        # Break the loop if 'q' is pressed
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    # Clean up
+    picam2.close()
+    cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    main()
