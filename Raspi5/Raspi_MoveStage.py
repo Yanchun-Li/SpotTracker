@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-import math
 from picamera2 import Picamera2
 
 class PIDController:
@@ -29,7 +28,7 @@ class PIDController:
         return control_x, control_y
 
 def is_triangle(contour):
-    epsilon = 0.04 * cv2.arcLength(contour, True)
+    epsilon = 0.02 * cv2.arcLength(contour, True)
     approx = cv2.approxPolyDP(contour, epsilon, True)
     return len(approx) == 3
 
@@ -40,21 +39,22 @@ def triangle_similarity(contour):
         return float('inf')
     return area / (0.5 * perimeter * perimeter)
 
+def convert_frame(frame):
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    blurred = cv2.GaussianBlur(gray, (3,3), 0)
+    edges = cv2.Canny(blurred, 30, 100)
+    contours, _ = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    return contours  
+
 def get_triangle_center(contour):
     M = cv2.moments(contour)
     if M["m00"] != 0:
         cX = int(M["m10"] / M["m00"])
         cY = int(M["m01"] / M["m00"])
-        return (cX, cY)
+        return np.array([cX, cY])
     return None
 
-def TriangleMarker_position(frame):
-    # Convert to grayscale
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.GaussianBlur(gray, (5,5), 0)
-    edges = cv2.Canny(blurred, 50, 150)
-    contours, _ = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
+def TriangleMarker_position(contours):
     triangles = []
     for contour in contours:
         if is_triangle(contour):
@@ -62,14 +62,16 @@ def TriangleMarker_position(frame):
             if area > 500: # Filter out small contours
                 similarity = triangle_similarity(contour)
                 center = get_triangle_center(contour)
-                if center:
+                if center is not None:
                     triangles.append((similarity, center))
-    triangles = sorted(triangles, key=lambda x: x[0])[:1]
+
+    triangles = sorted(triangles, key=lambda x: x[0])[:1]   # [(simlarity, (x, y))]
 
     if len(triangles) == 1:
         Center = triangles[0][1]
-
-    return Center[0], Center[1]    
+        return Center
+    else:
+        return None
 
 if __name__ == "__main__":
     # Initialize Picamera2
@@ -77,11 +79,22 @@ if __name__ == "__main__":
     preview_config = picam2.create_preview_configuration()
     picam2.configure(preview_config)
     picam2.start()
+    frame = picam2.capture_array()                                            # (height, width)
+
+    target_position = np.array([frame.shape[1] // 2, frame.shape[0] // 2])    # (0, 0) at top-left corner
 
     while True:
         frame = picam2.capture_array()
-        tri_x, tri_y = TriangleMarker_position(frame)
+        contours = convert_frame(frame)
+        TriMarker_center = TriangleMarker_position(contours)
+        
+        if TriMarker_center is not None:
+            delta = target_position - TriMarker_center
+            print(f"Delta Distance: [{delta[0]}, {delta[1]}]")
+            cv2.circle(frame, tuple(TriMarker_center), 3, (255, 0, 0), -1)
 
+        cv2.imshow("Detected Triangle", frame)
+        
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
