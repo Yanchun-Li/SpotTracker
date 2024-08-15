@@ -21,7 +21,7 @@ while True:
     last_ArmMarker_centers = ArmMarker_centers.copy()           # update marker centers
     mirror_phi, mirror_theta = mirrorAngles(ArmMarker_centers)  # mirror rotation angle
 
-    tri_x, tri_y = TriangleMarker_position(contours)
+    TriMarker_center = TriangleMarker_position(contours)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
