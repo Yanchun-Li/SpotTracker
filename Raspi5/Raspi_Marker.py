@@ -1,8 +1,20 @@
 from picamera2 import Picamera2
 import cv2
 import numpy as np
+import socket
+import json
 import threading
 from collections import deque
+
+def send_center(detected_centers):
+    server_ip = "WINDOWS_PC_IP_ADDRESS"                         # Windows PC's IP Address
+    server_port = 5005                                          # server port (自由定义)
+    message = json.dumps(detected_centers)                      # convert into json
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect((server_ip, server_port))                      # connect server in Windows
+    sock.sendall(message.encode())                              # send signals
+    sock.close()
 
 class KalmanTracker:
     def __init__(self):
@@ -93,6 +105,9 @@ def process_frame():
 
         # Update last detected centers
         last_detected_centers = detected_centers.copy()
+        
+        # Send center to Windows PC
+        send_center(detected_centers)
 
         # Print detected circles and their centers
         print(f"Detected {len(detected_centers)} valid circle(s). Centers:", detected_centers)
@@ -106,14 +121,12 @@ processing_thread.start()
 
 while True:
     frame = picam2.capture_array()
-
     frame_processed = frame.copy()
 
     for center in detected_centers:
         cv2.circle(frame, center, 5, (255, 0, 0), -1)
 
     cv2.imshow('Detected Circles', frame)
-
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
