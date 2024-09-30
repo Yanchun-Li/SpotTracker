@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 import math
+import json
+import socket
 from picamera2 import Picamera2
 
 # Parameter definitions
@@ -13,15 +15,15 @@ MIN_CONTOUR_AREA = 100  # 最小轮廓面积阈值
 MAX_CONTOUR_AREA = 10000  # 最大轮廓面积阈值
 
 
-def phi(x_rel, frame_shape):
-    x = W * (x_rel / (frame_shape[1] / 2))
-    phi_value = math.degrees(math.atan((c - x) / l))
-    return max(-50, min(50, phi_value))
+# def phi(x_rel, frame_shape):
+#     x = W * (x_rel / (frame_shape[1] / 2))
+#     phi_value = math.degrees(math.atan((c - x) / l))
+#     return max(-50, min(50, phi_value))
 
-def theta(y_rel, frame_shape):
-    y = H * (y_rel / (frame_shape[0] / 2))
-    theta_value = math.degrees(math.atan(y / l))
-    return max(-50, min(50, theta_value))
+# def theta(y_rel, frame_shape):
+#     y = H * (y_rel / (frame_shape[0] / 2))
+#     theta_value = math.degrees(math.atan(y / l))
+#     return max(-50, min(50, theta_value))
 
 def convert_frame(frame):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -30,44 +32,16 @@ def convert_frame(frame):
     contours, _ = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     return contours  
 
-def CirMarkerCenter_Hough(frame):
-    # Convert to grayscale
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    
-    # Use HoughCircles to detect circles
-    circles = cv2.HoughCircles(blurred, cv2.HOUGH_GRADIENT, dp=1.2, minDist=20, param1=50, param2=30, minRadius=5, maxRadius=50)
-    
-    detected_centers = []
-    A_detected = False
-    B_detected = False
+#--------------------------Radar Center-----------------------------------
+def detect_radar_center(contours):
+    largest_contour = max(contours, key=cv2.contourArea)
+    M = cv2.moments(largest_contour)
+    if M["m00"] != 0:
+        cx = int(M["m10"] / M["m00"])
+        cy = int(M["m01"] / M["m00"])
+        return (cx, cy)    
 
-    if circles is not None:
-        circles = np.round(circles[0, :]).astype("int")
-        # Filter out circles based on a minimum radius and limit to a maximum of 2 circles
-        valid_circles = [c for c in circles if c[2] >= 3]
-        valid_circles = valid_circles[:1]   # only save two circles
-
-        for (x, y, r) in valid_circles:
-            detected_center = (x, y)
-
-            # 根据上次记录的位置，判断当前检测到的是A还是B
-            if np.linalg.norm(np.array(detected_center) - np.array(last_detected_centers[0])) < np.linalg.norm(np.array(detected_center) - np.array(last_detected_centers[1])):
-                detected_centers.append(detected_center)
-                A_detected = True  # Marker A is detected
-            else:
-                detected_centers.append(detected_center)
-                B_detected = True  # Marker B is detected
-
-    # 如果检测到的圆少于2个，使用上次检测到的圆心位置补全
-    if not A_detected:
-        detected_centers.insert(0, last_detected_centers[0])
-    if not B_detected:
-        detected_centers.append(last_detected_centers[1])
-
-    return detected_centers
-
-
+#--------------------------- Marker Center ------------------------
 def CirMarkerCenter_Contour(contours):
 
     detected_centers = []
@@ -115,6 +89,27 @@ def CirMarkerCenter_Contour(contours):
 
     return detected_centers
 
+#--------------------------Calculate Error------------------------
+def calculate_error(point_id, last_armmarker_center, radar_center):
+    marker_center = last_armmarker_center[point_id]
+    error_x = radar_center[0] - marker_center[0]
+    error_y = radar_center[1] - marker_center[1]
+    return (error_x, error_y)
+
+#--------------------------Send to PC-----------------------------------------
+def send2pc(value, server_ip, server_port=5005):
+    """
+    server_ip:    Windows PC IP ADDRESS
+    server_port: 5005 (freely definable)
+    """
+    message = json.dumps(value)                      # convert into json
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect((server_ip, server_port))                      # connect server in Windows
+    sock.sendall(message.encode())                              # send signals
+    sock.close()
+
+
 def display(detected_centers):
     # 计算和输出选中点的角度，并同时显示两个圆
     for i, center in enumerate(detected_centers):
@@ -122,15 +117,53 @@ def display(detected_centers):
         color = (0, 0, 255) if i == selected_point else (0, 255, 0)
         cv2.circle(frame, (center[0], center[1]), 3, color, -1)
 
-def mirrorAngles(detected_centers):
-    for i, center in enumerate(detected_centers):
-        # Calculate angles of selected point
-        if i == selected_point:
-            x_rel = center[0] - frame.shape[1] // 2
-            y_rel = frame.shape[0] // 2 - center[1]
-            phi_value = phi(x_rel, frame.shape)
-            theta_value = theta(y_rel, frame.shape)
-            return phi_value, theta_value  
+# def mirrorAngles(detected_centers):
+#     for i, center in enumerate(detected_centers):
+#         # Calculate angles of selected point
+#         if i == selected_point:
+#             x_rel = center[0] - frame.shape[1] // 2
+#             y_rel = frame.shape[0] // 2 - center[1]
+#             phi_value = phi(x_rel, frame.shape)
+#             theta_value = theta(y_rel, frame.shape)
+#             return phi_value, theta_value
+
+##### NOT USING THIS ######################
+def CirMarkerCenter_Hough(frame):
+    # Convert to grayscale
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    
+    # Use HoughCircles to detect circles
+    circles = cv2.HoughCircles(blurred, cv2.HOUGH_GRADIENT, dp=1.2, minDist=20, param1=50, param2=30, minRadius=5, maxRadius=50)
+    
+    detected_centers = []
+    A_detected = False
+    B_detected = False
+
+    if circles is not None:
+        circles = np.round(circles[0, :]).astype("int")
+        # Filter out circles based on a minimum radius and limit to a maximum of 2 circles
+        valid_circles = [c for c in circles if c[2] >= 3]
+        valid_circles = valid_circles[:1]   # only save two circles
+
+        for (x, y, r) in valid_circles:
+            detected_center = (x, y)
+
+            # 根据上次记录的位置，判断当前检测到的是A还是B
+            if np.linalg.norm(np.array(detected_center) - np.array(last_detected_centers[0])) < np.linalg.norm(np.array(detected_center) - np.array(last_detected_centers[1])):
+                detected_centers.append(detected_center)
+                A_detected = True  # Marker A is detected
+            else:
+                detected_centers.append(detected_center)
+                B_detected = True  # Marker B is detected
+
+    # 如果检测到的圆少于2个，使用上次检测到的圆心位置补全
+    if not A_detected:
+        detected_centers.insert(0, last_detected_centers[0])
+    if not B_detected:
+        detected_centers.append(last_detected_centers[1])
+
+    return detected_centers
 
 if __name__ == "__main__":
     # Initialize Picamera2
@@ -152,8 +185,8 @@ if __name__ == "__main__":
         last_detected_centers = detected_centers.copy() # update marker centers
         
         display(detected_centers)
-        phi_value, theta_value = mirrorAngles(detected_centers)
-        print(f"Selected Point[{selected_point}]: phi={phi_value}, theta={theta_value}")
+        # phi_value, theta_value = mirrorAngles(detected_centers)
+        # print(f"Selected Point[{selected_point}]: phi={phi_value}, theta={theta_value}")
 
         cv2.imshow('Detected Circles', frame)
 

@@ -6,16 +6,6 @@ import json
 import threading
 from collections import deque
 
-def send_center(detected_centers):
-    server_ip = "WINDOWS_PC_IP_ADDRESS"                         # Windows PC's IP Address
-    server_port = 5005                                          # server port (自由定义)
-    message = json.dumps(detected_centers)                      # convert into json
-
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect((server_ip, server_port))                      # connect server in Windows
-    sock.sendall(message.encode())                              # send signals
-    sock.close()
-
 class KalmanTracker:
     def __init__(self):
         self.kalman = cv2.KalmanFilter(4, 2)
@@ -38,20 +28,38 @@ class KalmanTracker:
             return median
         return midpoint
 
-# Initialize Picamera2
-picam2 = Picamera2()
-preview_config = picam2.create_preview_configuration()
-picam2.configure(preview_config)
-picam2.start()
+#--------------------------Radar Center-----------------------------------
+def detect_radar_center_from_threshold(blurred_image):
+    _, thresh = cv2.threshold(blurred_image, 200, 255, cv2.THRESH_BINARY)
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-# Variables to store trackers and detected centers
-trackers = []
-detected_centers = []
-last_detected_centers = [(0, 0), (0, 0)]  # Record the location of the last two detected circle centers
-frame_processed = None
-A_detected = False  # Whether A is detected
-B_detected = False  # Whether B is detected
+    if contours:
+        largest_contour = max(contours, key=cv2.contourArea)
+        M = cv2.moments(largest_contour)
+        if M["m00"] != 0:
+            cx = int(M["m10"] / M["m00"])
+            cy = int(M["m01"] / M["m00"])
+            return (cx, cy)    
+    return None
 
+#--------------------------Calculate Error------------------------
+def calculate_error(marker_center, radar_center):
+    error_x = radar_center[0] - marker_center[0]
+    error_y = radar_center[1] - marker_center[1]
+    return (error_x, error_y)
+
+#--------------------------Send to PC-----------------------------------------
+def send2pc(detected_centers):
+    server_ip = "WINDOWS_PC_IP_ADDRESS"                         # Windows PC's IP Address
+    server_port = 5005                                          # server port (自由定义)
+    message = json.dumps(detected_centers)                      # convert into json
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect((server_ip, server_port))                      # connect server in Windows
+    sock.sendall(message.encode())                              # send signals
+    sock.close()
+
+#-----------------------Main Processing----------------------------------------------
 def process_frame():
     global trackers, detected_centers, last_detected_centers, frame_processed, A_detected, B_detected
     while True:
@@ -59,27 +67,24 @@ def process_frame():
             continue
 
         frame = frame_processed.copy()
-        # Convert to grayscale
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-        
+        blurred = cv2.GaussianBlur(gray, (5, 5), 0)    
         # Use HoughCircles to detect circles
         circles = cv2.HoughCircles(blurred, cv2.HOUGH_GRADIENT, dp=1.2, minDist=20, param1=50, param2=30, minRadius=5, maxRadius=50)
         
+
         detected_centers = []
         A_detected = False
         B_detected = False
 
         if circles is not None:
             circles = np.round(circles[0, :]).astype("int")
-
             # Filter out circles based on a minimum radius and limit to a maximum of 2 circles
             valid_circles = [c for c in circles if c[2] >= 3]
             valid_circles = valid_circles[:1]  # the upper limit of circle number is 2
 
             for (x, y, r) in valid_circles:
                 midpoint = np.array([x, y], dtype=np.float32)
-
                 if len(trackers) < len(detected_centers) + 1:
                     trackers.append(KalmanTracker())
 
@@ -103,16 +108,40 @@ def process_frame():
         if not B_detected:
             detected_centers.append(last_detected_centers[1])  # append B's center
 
+
         # Update last detected centers
         last_detected_centers = detected_centers.copy()
+        radar_center = detect_radar_center_from_threshold(blurred)
         
-        # Send center to Windows PC
-        send_center(detected_centers)
+        if radar_center:
+            # If radar point is detected, calculate the error between radar center and one of the marker centers
+            error = calculate_error(detected_centers[0], radar_center)  # Assuming detected_centers[0] is the relevant marker
+            print(f"Marker Center: {detected_centers[0]}, Radar Center: {radar_center}, Error: {error}")
+            
+            # Send the error to the Windows computer
+            send2pc(error)
 
         # Print detected circles and their centers
         print(f"Detected {len(detected_centers)} valid circle(s). Centers:", detected_centers)
         for center in detected_centers:
             cv2.circle(frame, center, 5, (0, 0, 255), -1)
+
+
+
+##################################################################
+# Initialize Picamera2
+picam2 = Picamera2()
+preview_config = picam2.create_preview_configuration()
+picam2.configure(preview_config)
+picam2.start()
+
+# Variables to store trackers and detected centers
+trackers = []
+detected_centers = []
+last_detected_centers = [(0, 0), (0, 0)]  # Record the location of the last two detected circle centers
+frame_processed = None
+A_detected = False  # Whether A is detected
+B_detected = False  # Whether B is detected
 
 # Start image processing thread
 processing_thread = threading.Thread(target=process_frame)
