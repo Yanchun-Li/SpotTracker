@@ -100,9 +100,9 @@ def calculate_error(point_id, last_armmarker_center, radar_center):
 def send2pc(value, server_ip, server_port=5005):
     """
     server_ip:    Windows PC IP ADDRESS
-    server_port: 5005 (freely definable)
+    server_port:  5005 (freely definable)
     """
-    message = json.dumps(value)                      # convert into json
+    message = json.dumps(value)                                 # convert into json
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((server_ip, server_port))                      # connect server in Windows
@@ -110,12 +110,17 @@ def send2pc(value, server_ip, server_port=5005):
     sock.close()
 
 
-def display(detected_centers):
+def display(point_id, ArmMarker_centers, Radar_center):
     # 计算和输出选中点的角度，并同时显示两个圆
-    for i, center in enumerate(detected_centers):
+    for i, center in enumerate(ArmMarker_centers):
         # 设置颜色：红色表示选中的点，绿色表示未选中的点
-        color = (0, 0, 255) if i == selected_point else (0, 255, 0)
+        color = (0, 0, 255) if i == point_id else (0, 255, 0)
         cv2.circle(frame, (center[0], center[1]), 3, color, -1)
+    
+    cv2.circle(frame, (Radar_center[0], Radar_center[1]), 3, (0, 0, 255), -1)  
+    # draw a line between selected point and Radar center
+    cv2.line(frame, (Radar_center[0], Radar_center[1]), (ArmMarker_centers[point_id][0], ArmMarker_centers[point_id][1]), (0, 0, 255), 1)
+
 
 # def mirrorAngles(detected_centers):
 #     for i, center in enumerate(detected_centers):
