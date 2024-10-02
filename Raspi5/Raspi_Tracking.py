@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from picamera2 import Picamera2
 
-from Raspi_Marker_withoutKalmanFilter import convert_frame, CirMarkerCenter_Contour, detect_radar_center, calculate_error, send2pc, display
+from process import convert_frame, CirMarkerCenter_Contour, detect_radar_center, calculate_error, send2pc, display
 
 # Initialize Picamera2
 picam2 = Picamera2()
@@ -26,7 +26,7 @@ while True:
     error = calculate_error(point_id, last_ArmMarker_centers, Radar_center)     # calculate the error distance (x, y)[pixel]
     send2pc(error, server_ip='WINDOWS PC IP ADDRESS', server_port=5005)         # send error value to PC
 
-    display(point_id, ArmMarker_centers, Radar_center)                                    # display 
+    display(point_id, ArmMarker_centers, Radar_center)                          # display 2 marker centers and 1 radar centers
 
     if key == ord('q'):
         break
