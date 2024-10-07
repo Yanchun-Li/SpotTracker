@@ -82,6 +82,12 @@ fg = visadev('USB0::0x0D4A::0x000D::9244234::INSTR');   %NF1973
 fopen(amp);
 fopen(fg);
 
+% ファイル名を設定
+current_time = datetime('now', 'Format', 'yyyyMMdd_HHmmss');
+csv_filename = sprintf('./data_all/%s.csv', current_time);
+% Write the header to the file
+writematrix(["Time", "Lockin Signal"], csv_filename);
+
 duty=50;
 fprintf(fg, [':Source1:FUNCtion:SQUare:DCYCle ', num2str(duty)]);
 fprintf(fg, ':Source1:VOLT 4.9');
@@ -103,6 +109,34 @@ static_input_x = ch_x.StaticInput;
 ch_y = mre2.Mirror.Channel_1;
 ch_y.SetControlMode(optoMDC.Units.XY);
 static_input_y = ch_y.StaticInput;
+% Hill Climbing
+% Initial position
+X = 0;
+Y = 0;
+xValue = clamp(angle_to_xy(X), -1, 1);
+static_input_x.SetXY(xValue);
+yValue = clamp(angle_to_xy(Y), -1, 1);
+static_input_y.SetXY(yValue);
+
+threshold = 0.6;
+
+xvalueList = static_input_x.GetXY();
+yvalueList = static_input_y.GetXY();
+
+% Step size in degree
+step = 1;
+
+volt_history = [];
+runtime= [];
+
+% Initialize the current voltage
+currentX = xvalueList{1};
+currentY = yvalueList{1};
+current_time = cputime;
+runtime = [runtime, cputime - current_time];
+[currentVal, volt_history] = getScopeData(osc, volt_history, runtime);
+step = setStep(currentVal, step);
+fprintf('The current position is:(%f, %f, %f).\n', currentX, currentY, currentVal);
 
 
 while true
@@ -122,6 +156,7 @@ while true
     % output_x = P_x + I_x + D_x; 
     output_x = P_x
     previous_error_x = e_x; 
+    disp(['PID X: P_x = ', num2str(P_x),'Output = ', num2str(output_x)]);
     
     % ----------------- PID Control (Y-axis) -----------------
     integral_y = integral_y + e_y * dt;
@@ -132,6 +167,7 @@ while true
     % output_y = P_y + I_y + D_y;
     ouput_y = P_y
     previous_error_y = e_y;
+    disp(['PID Y: P_y = ', num2str(P_x),'Output = ', num2str(output_x)]);
 
     % ---------------- Move stage [2um/pulse] ---------------------
     xpulse = output_x * 1000 / 2;                       % x axis convert pixel to pulse
@@ -144,9 +180,22 @@ while true
     mywait(stg1);
     fprintf(stg2, 'G:');
     mywait(stg2);
+
+    [currentX, currentY, currentVal, step] = adjustMirrorHorizontal(currentX, currentY, step, osc, threshold, static_input_x);
+    [currentX, currentY, currentVal, step] = adjustMirrorVertical(currentX, currentY, step, osc, threshold, static_input_y);
+    fprintf('Updated position: X = %f, Y = %f, Voltage = %f\n', currentX, currentY, currentVal);
+    
+    if currentVal > threshold
+        performLockinMeasurement(osc, amp, fg, csv_filename);
+        break;
+    end
     
     pause(0.1);                                         
 end
+
+figure
+figureHandle = figure(1)                                                % choose to save which figure
+saveResultsAndDisconnect(figureHandle, osc, amp, fg, mre2, comment);    % save results and disconnect osc, amp, fg
 
 fclose(t);
 delete(t);
@@ -240,4 +289,174 @@ function [optimalX, optimalY] = gradient_descent(initialX, initialY, osc, maxIte
     
     optimalX = X;
     optimalY = Y;
+end
+
+function xy_value = angle_to_xy(angle)
+    xy_value = tan(deg2rad(angle)) / tan(deg2rad(50));
+end
+
+%%
+
+function xy_value = clamp(value, min_value, max_value)
+    xy_value = max(min_value, min(value, max_value));
+end
+
+%%
+function step = setStep(currentVoltage, step)
+    if currentVoltage < 0.1
+        step = 1*sign(step); 
+    elseif currentVoltage < 0.2
+        step = 0.5*sign(step);
+    elseif currentVoltage < 0.3
+        step = 0.1*sign(step);
+    elseif currentVoltage < 0.35
+        step = 0.05*sign(step);
+    else
+        step = 0.01*sign(step);
+    end
+end
+
+function [currentX, currentY, currentVal, step] = adjustMirrorHorizontal(currentX, currentY, step, osc, threshold, static_input_x)
+    horizental_direction = 0;
+    current_time = cputime;
+    [currentVal, volt_history] = getScopeData(osc, [], [cputime - current_time]);
+    
+    while currentVal < threshold
+        X = currentX + step;
+        Y = currentY;
+        xValue = clamp(angle_to_xy(X), -1, 1);
+        static_input_x.SetXY(xValue); % set mirror
+        xvalueList = static_input_x.GetXY();
+        
+        % Wait until the mirror reaches the destination position
+        while abs(xvalueList{1} - xValue) >= 0.001
+            xvalueList = static_input_x.GetXY();
+        end
+        
+        [nextVal, ~] = getScopeData(osc, [], [cputime - current_time]);
+        fprintf('The current position is:(%f, %f, %f).\n', X, Y, nextVal);
+        
+        if nextVal - currentVal > 0
+            nextStep = setStep(nextVal, step);
+        else
+            X = currentX;
+            xValue = clamp(angle_to_xy(X), -1, 1);
+            static_input_x.SetXY(xValue); % set mirror
+            while abs(xvalueList{1} - xValue) >= 0.001
+                xvalueList = static_input_x.GetXY();
+            end
+            [nextVal, ~] = getScopeData(osc, [], [cputime - current_time]);
+            fprintf('The current position is:(%f, %f, %f).\n', X, Y, nextVal);
+            nextStep = setStep(nextVal, step);
+            nextStep = -nextStep;
+            horizental_direction = horizental_direction + 1;
+        end
+        
+        % Move to the next position
+        currentX = X;
+        currentY = Y;
+        currentVal = nextVal;
+        step = nextStep;
+        
+        if horizental_direction >= 2
+            break;
+        end
+    end
+end
+
+function [currentX, currentY, currentVal, step] = adjustMirrorVertical(currentX, currentY, step, osc, threshold, static_input_y)
+    vertical_direction = 0;
+    current_time = cputime;
+    [currentVal, volt_history] = getScopeData(osc, [], [cputime - current_time]);
+    
+    while currentVal < threshold
+        X = currentX;
+        Y = currentY + step;
+        yValue = clamp(angle_to_xy(Y), -1, 1);
+        static_input_y.SetXY(yValue); % set mirror
+        yvalueList = static_input_y.GetXY();
+        
+        % Wait until the mirror reaches the destination position
+        while abs(yvalueList{1} - yValue) >= 0.001
+            yvalueList = static_input_y.GetXY();
+        end
+        
+        [nextVal, ~] = getScopeData(osc, [], [cputime - current_time]);
+        fprintf('The current position is:(%f, %f, %f).\n', X, Y, nextVal);
+        
+        if nextVal - currentVal > 0
+            nextStep = setStep(nextVal, step);
+        else
+            Y = currentY;
+            yValue = clamp(angle_to_xy(Y), -1, 1);
+            static_input_y.SetXY(yValue); % set mirror
+            while abs(yvalueList{1} - yValue) >= 0.001
+                yvalueList = static_input_y.GetXY();
+            end
+            [nextVal, ~] = getScopeData(osc, [], [cputime - current_time]);
+            fprintf('The current position is:(%f, %f, %f).\n', X, Y, nextVal);
+            nextStep = setStep(nextVal, step);
+            nextStep = -nextStep;
+            vertical_direction = vertical_direction + 1;
+        end
+        
+        % Move to the next position
+        currentX = X;
+        currentY = Y;
+        currentVal = nextVal;
+        step = nextStep;
+        
+        if vertical_direction >= 2
+            break;
+        end
+    end
+end
+
+
+function performLockinMeasurement(osc, amp, fg, csv_filename)
+    n = 256;
+    freq = 64e3;
+    label_time = [];
+    label_freq = [];
+    lockin_signal = zeros(1, n);
+    lockin_signal_amp = zeros(1, n);
+    lockin_signal_phase = zeros(1, n);
+    
+    tic;
+    for freq_cnt = 1:n
+        freq = freq + 0.5e3;
+        [label_freq, lockin_signal, current_data] = lockinMeasurement(freq, freq_cnt, ...
+            toc, label_freq, lockin_signal, lockin_signal_amp, lockin_signal_phase, ...
+            amp, fg);
+        
+        writematrix(current_data, csv_filename, 'WriteMode', 'append');
+    end
+end
+
+function saveResultsAndDisconnect(figureHandle, osc, amp, fg, mre2, comment)
+    fprintf('Saving and cleaning up...\n');
+    path = './data_all/';
+    if ~exist(path, 'dir')
+        mkdir(path);
+    end
+    
+    datetime.setDefaultFormats('default', 'yyyy-MM-dd-HHmmss');
+    dt = datetime('now');
+    time = string(dt);
+    extension = '.mat';
+    comment = ['comment']
+    filename = append(path, time, comment);
+    
+
+    save(strcat(filename, extension));
+    extension = '.fig';
+    saveas(figureHandle, strcat(filename, '_spectrum', extension));
+    
+    % disconnect
+    mre2.disconnect();
+    fclose(osc);
+    fclose(amp);
+    fclose(fg);
+    
+    fprintf('Results saved successfully.\n');
 end
