@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from picamera2 import Picamera2
 
-from process import convert_frame, CirMarkerCenter_Contour, detect_radar_center, calculate_error, send2pc, display
+from process import convert_frame, RectMarkerCenter_Contour, detect_radar_center, calculate_error, send2pc, display
 
 # Initialize Picamera2
 picam2 = Picamera2()
@@ -12,22 +12,41 @@ picam2.start()
 
 # Initialize selected_point
 point_id = 0
-marker_num = 1               
+marker_num = 1
+last_ArmMarker_centers = [(0, 0)] if marker_num == 1 else [(0,0), (0,0)]
 
+start_tracking = False
 while True:
+    frame = picam2.capture_array()
+    cv2.imshow("Press 'Enter' to start tracking", frame)
+
+    key = cv2.waitKey(1) & 0xFF
+    if key == 13:
+        start_tracking = True
+        cv2.destroyAllWindows()
+        break
+    elif key == ord('q'):
+        picam2.stop()
+        cv2.destroyAllWindows()
+        exit()
+
+while start_tracking:
     frame = picam2.capture_array()
     contours = convert_frame(frame)
 
-    ArmMarker_centers = CirMarkerCenter_Contour(marker_num, contours)                       # center of markers on arms (2 centers)
-    last_ArmMarker_centers = ArmMarker_centers.copy()                           # update marker centers
+    ArmMarker_centers = RectMarkerCenter_Contour(marker_num, contours, last_ArmMarker_centers)                       # center of markers on arms (2 centers)
+    if len(ArmMarker_centers) > 0:
+        last_ArmMarker_centers = ArmMarker_centers.copy()                           # update marker centers
+        
     Radar_center = detect_radar_center(contours)                                # center of radar point
 
     key = cv2.waitKey(1) & 0xFF
-    point_id = key - ord('0') - 1                                               # choose tracking which point via keyboard input
-    error = calculate_error(point_id, last_ArmMarker_centers, Radar_center)     # calculate the error distance (x, y)[pixel]
-    send2pc(error, server_ip='WINDOWS PC IP ADDRESS', server_port=5005)         # send error value to PC
+    if key in  [ord('1'), ord('2')]:
+        point_id = key - ord('0') - 1                                               # choose tracking which point via keyboard input
+    # error = calculate_error(point_id, last_ArmMarker_centers, Radar_center)     # calculate the error distance (x, y)[pixel]
+    # send2pc(error, server_ip='WINDOWS PC IP ADDRESS', server_port=5005)         # send error value to PC
 
-    display(point_id, ArmMarker_centers, Radar_center)                          # display 2 marker centers and 1 radar centers
+    display(frame, point_id, last_ArmMarker_centers, Radar_center)                          # display 2 marker centers and 1 radar centers
 
     if key == ord('q'):
         break
