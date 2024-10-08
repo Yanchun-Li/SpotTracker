@@ -11,13 +11,14 @@ picam2.configure(preview_config)
 picam2.start()
 
 # Initialize selected_point
-point_id = 0               
+point_id = 0
+marker_num = 1               
 
 while True:
     frame = picam2.capture_array()
     contours = convert_frame(contours)
 
-    ArmMarker_centers = CirMarkerCenter_Contour(contours)                       # center of markers on arms (2 centers)
+    ArmMarker_centers = CirMarkerCenter_Contour(marker_num, contours)                       # center of markers on arms (2 centers)
     last_ArmMarker_centers = ArmMarker_centers.copy()                           # update marker centers
     Radar_center = detect_radar_center(contours)                                # center of radar point
 

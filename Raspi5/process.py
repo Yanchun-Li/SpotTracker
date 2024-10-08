@@ -41,8 +41,58 @@ def detect_radar_center(contours):
         cy = int(M["m01"] / M["m00"])
         return (cx, cy)    
 
+
 #--------------------------- Marker Center ------------------------
-def CirMarkerCenter_Contour(contours):
+def RectMarkerCenter_Contour(marker_num, contours):
+    detected_centers = []
+    A_detected = False
+    B_detected = False
+    
+    for contour in contours:
+        peri = cv2.arcLength(contour, True)
+        approx = cv2.approxPolyDP(contour, 0.02 * peri, True)
+        
+        # 如果逼近的多边形有4个顶点，可能是矩形
+        if len(approx) == 4:
+            rect = cv2.boundingRect(approx)
+            (x, y, w, h) = rect
+            aspect_ratio = float(w) / h
+
+            # 根据宽高比过滤近似矩形的区域，通常我们认为宽高比在一定范围内(near to square and w,h are larger than 10 pixels)
+            if 0.8 <= aspect_ratio <= 1.2 and w > 10 and h > 10:
+                detected_center = (int(x + w / 2), int(y + h / 2))
+
+                # 根据之前检测到的位置判断当前检测到的是A还是B
+                if np.linalg.norm(np.array(detected_center) - np.array(last_detected_centers[0])) < \
+                   np.linalg.norm(np.array(detected_center) - np.array(last_detected_centers[1])):
+                    if not A_detected:
+                        detected_centers.append(detected_center)
+                        A_detected = True  # 标记A被检测到
+                    elif np.linalg.norm(np.array(detected_center) - np.array(detected_centers[0])) > MIN_DISTANCE_BETWEEN_MARKERS:
+                        detected_centers.append(detected_center)
+                        B_detected = True  # 标记B被检测到
+                else:
+                    if not B_detected:
+                        detected_centers.append(detected_center)
+                        B_detected = True  # 标记B被检测到
+                    elif np.linalg.norm(np.array(detected_center) - np.array(detected_centers[0])) > MIN_DISTANCE_BETWEEN_MARKERS:
+                        detected_centers.append(detected_center)
+                        A_detected = True  # 标记A被检测到
+
+    # 限制最多检测到marker_num个矩形中心
+    detected_centers = detected_centers[:marker_num-1]
+    if marker_num == 2:
+        # 如果检测到的矩形少于2个，使用上次检测到的位置补全
+        if not A_detected and len(last_detected_centers) > 0:
+            detected_centers.insert(0, last_detected_centers[0])  # 补充A的位置
+        if not B_detected and len(last_detected_centers) > 1:
+            detected_centers.append(last_detected_centers[1])  # 补充B的位置
+
+    return detected_centers
+
+
+#--------------------------- Marker Center ------------------------
+def CirMarkerCenter_Contour(marker_num, contours):
 
     detected_centers = []
     A_detected = False
@@ -78,14 +128,14 @@ def CirMarkerCenter_Contour(contours):
                         detected_centers.append(detected_center)
                         A_detected = True  # 标记A被检测到
 
-    # 限制最多检测到两个圆心
-    detected_centers = detected_centers[:2]
-
-    # 如果检测到的圆少于2个，使用上次检测到的圆心位置补全
-    if not A_detected and len(last_detected_centers) > 0:
-        detected_centers.insert(0, last_detected_centers[0])  # 补充A的位置
-    if not B_detected and len(last_detected_centers) > 1:
-        detected_centers.append(last_detected_centers[1])  # 补充B的位置
+    # 限制最多检测到marker_num个圆心
+    detected_centers = detected_centers[:marker_num-1]
+    if marker_num == 2:
+        # 如果检测到的圆少于2个，使用上次检测到的圆心位置补全
+        if not A_detected and len(last_detected_centers) > 0:
+            detected_centers.insert(0, last_detected_centers[0])  # 补充A的位置
+        if not B_detected and len(last_detected_centers) > 1:
+            detected_centers.append(last_detected_centers[1])  # 补充B的位置
 
     return detected_centers
 
