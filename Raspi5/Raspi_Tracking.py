@@ -1,8 +1,10 @@
 import cv2
+import socket
+import json
 import numpy as np
 from picamera2 import Picamera2
 
-from process import convert_frame, RectMarkerCenter_Contour, detect_radar_center, calculate_error, send2pc, display
+from process import convert_frame, RectMarkerCenter_Contour, detect_radar_center, calculate_error,  display
 
 # Initialize Picamera2
 picam2 = Picamera2()
@@ -21,8 +23,6 @@ last_ArmMarker_centers = [(0, 0)] if marker_num == 1 else [(0,0), (0,0)]
 last_Radar_center = (0, 0)
 start_tracking = False
 
-server_ip = '192.168.100.29'
-
 while True:
     frame = picam2.capture_array()
     cv2.imshow("Press 'Enter' to start tracking", frame)
@@ -36,6 +36,12 @@ while True:
         picam2.stop()
         cv2.destroyAllWindows()
         exit()
+
+server_ip = '192.168.100.29'
+server_port = 5005
+# Establish the TCP connection outside the loop
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.connect((server_ip, server_port))  # Connect to the server once
 
 while start_tracking:
     frame = picam2.capture_array()
@@ -63,12 +69,15 @@ while start_tracking:
         point_id = key - ord('0') - 1                                               # choose tracking which point via keyboard input
     error = calculate_error(point_id, last_ArmMarker_centers, last_Radar_center)     # calculate the error distance (x, y)[pixel]
     print("Error", error)
-    send2pc(error, server_ip, server_port=5005)         # send error value to PC
+    message = json.dumps(error)
+    sock.sendall(message.encode())
+    print(f"Sending: {message}")
 
     display(frame, point_id, last_ArmMarker_centers, last_Radar_center)                          # display 2 marker centers and 1 radar centers
 
     if key == ord('q'):
         break
 
+socket.close()
 picam2.stop()
 cv2.destroyAllWindows()

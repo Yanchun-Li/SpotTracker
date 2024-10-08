@@ -3,6 +3,7 @@ import numpy as np
 import math
 import json
 import socket
+import time
 from picamera2 import Picamera2
 
 # Parameter definitions
@@ -183,17 +184,16 @@ def calculate_error(point_id, last_armmarker_center, radar_center):
     return (error_x, error_y)
 
 #--------------------------Send to PC-----------------------------------------
-def send2pc(value, server_ip, server_port=5005):
-    """
-    server_ip:    Windows PC IP ADDRESS
-    server_port:  5005 (freely definable)
-    """
-    message = json.dumps(value)                                 # convert into json
-    print(f"Sending: {message}")
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect((server_ip, server_port))                      # connect server in Windows
-    sock.sendall(message.encode())                              # send signals
-    sock.close()
+# def send2pc(value, server_ip, server_port=5005):
+#     """
+#     server_ip:    Windows PC IP ADDRESS
+#     server_port:  5005 (freely definable)
+#     """
+#     message = json.dumps(value)                                 # convert into json
+#     print(f"Sending: {message}")
+    
+#     sock.sendall(message.encode())                              # send signals
+#     sock.close()
 
 
 def display(frame, point_id, ArmMarker_centers, Radar_center):
