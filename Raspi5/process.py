@@ -189,7 +189,7 @@ def send2pc(value, server_ip, server_port=5005):
     server_port:  5005 (freely definable)
     """
     message = json.dumps(value)                                 # convert into json
-
+    print(f"Sending: {message}")
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((server_ip, server_port))                      # connect server in Windows
     sock.sendall(message.encode())                              # send signals
