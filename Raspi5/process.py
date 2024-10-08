@@ -31,45 +31,40 @@ def convert_frame(frame):
     edges = cv2.Canny(blurred, 50, 150)
     contours, _ = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     return contours  
-# def convert_frame(frame):
 
-#     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-#     adaptive_thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-#                                             cv2.THRESH_BINARY_INV, 11, 2)
-#     blurred = cv2.GaussianBlur(adaptive_thresh, (5, 5), 0)
-#     edges = cv2.Canny(blurred, 50, 150)  # 调整这两个参数，找到最合适的边缘检测阈值
-#     contours, _ = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-#     return contours
 #--------------------------Radar Center-----------------------------------
-def detect_radar_center(contours):
-    largest_contour = max(contours, key=cv2.contourArea)
-    M = cv2.moments(largest_contour)
-    if M["m00"] != 0:
-        cx = int(M["m10"] / M["m00"])
-        cy = int(M["m01"] / M["m00"])
-        return (cx, cy)    
-
-# def detect_radar_center(image, min_area=500):
-#     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-#     adaptive_thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
-#                                             cv2.THRESH_BINARY_INV, 11, 2)
-#     kernel = np.ones((5, 5), np.uint8)
-#     morph = cv2.morphologyEx(adaptive_thresh, cv2.MORPH_CLOSE, kernel)
-
-#     contours, _ = cv2.findContours(morph, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-#     contours = [contour for contour in contours if cv2.contourArea(contour) > min_area]
-#     if len(contours) == 0:
-#         return None
-
+# def detect_radar_center(contours):
 #     largest_contour = max(contours, key=cv2.contourArea)
 #     M = cv2.moments(largest_contour)
-
 #     if M["m00"] != 0:
 #         cx = int(M["m10"] / M["m00"])
 #         cy = int(M["m01"] / M["m00"])
-#         return (cx, cy)
+#         return (cx, cy)    
 
-#     return None
+def detect_radar_center(contours, last_detected_center, min_aspect_ratio=0.9, max_aspect_ratio=1.1):
+    detected_center = None
+    A_detected = False
+
+    for contour in contours:
+        if len(contour) >= 5:  # At least 5 points needed to fit an ellipse
+            ellipse = cv2.fitEllipse(contour)
+            (x, y), (MA, ma), angle = ellipse  # Center, Major axis, Minor axis, Angle of rotation
+
+            if MA == 0:  # Avoid division by zero
+                continue
+
+            # Filter based on the aspect ratio and size to detect circles
+            aspect_ratio = ma / MA  # Ratio of minor to major axis
+            if min_aspect_ratio <= aspect_ratio <= max_aspect_ratio and 10 < MA < 100:  # Adjust thresholds as needed
+                detected_center = (int(x), int(y))
+                A_detected = True  # 标记A被检测到
+                break  # 只需要检测一个标志物，找到后即可退出循环
+
+    # 如果未检测到圆心，使用上次的检测结果补全
+    if not A_detected:
+        detected_center = last_detected_center  # 使用上次的位置
+
+    return detected_center
 
 
 #--------------------------- Marker Center ------------------------

@@ -13,7 +13,7 @@ picam2.start()
 # Initialize selected_point
 point_id = 0
 marker_num = 1
-tolerance = 30
+tolerance = 600
 initial_skip_frames = 24
 frame_counter = 0
 
@@ -40,7 +40,7 @@ while start_tracking:
     contours = convert_frame(frame)
 
     ArmMarker_centers = RectMarkerCenter_Contour(marker_num, contours, last_ArmMarker_centers)                       # center of markers on arms (2 centers)
-    Radar_center = detect_radar_center(contours)                                # center of radar point
+    Radar_center = detect_radar_center(contours, last_Radar_center)                                # center of radar point
 
     if frame_counter < initial_skip_frames:
         frame_counter += 1
