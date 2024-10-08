@@ -41,7 +41,7 @@ def convert_frame(frame):
 #         cy = int(M["m01"] / M["m00"])
 #         return (cx, cy)    
 
-def detect_radar_center(contours, last_detected_center, min_aspect_ratio=0.9, max_aspect_ratio=1.1):
+def detect_radar_center(contours, last_detected_center, min_aspect_ratio=0.5, max_aspect_ratio=1.5):
     detected_center = None
     A_detected = False
 
@@ -55,7 +55,7 @@ def detect_radar_center(contours, last_detected_center, min_aspect_ratio=0.9, ma
 
             # Filter based on the aspect ratio and size to detect circles
             aspect_ratio = ma / MA  # Ratio of minor to major axis
-            if min_aspect_ratio <= aspect_ratio <= max_aspect_ratio and 10 < MA < 100:  # Adjust thresholds as needed
+            if min_aspect_ratio <= aspect_ratio <= max_aspect_ratio and 1 < MA < 200:  # Adjust thresholds as needed
                 detected_center = (int(x), int(y))
                 A_detected = True  # 标记A被检测到
                 break  # 只需要检测一个标志物，找到后即可退出循环
@@ -168,8 +168,6 @@ def CirMarkerCenter_Contour(marker_num, contours):
 
 #--------------------------Calculate Error------------------------
 def calculate_error(point_id, last_armmarker_center, radar_center):
-    print(last_armmarker_center)
-    print(len(last_armmarker_center), point_id)
     marker_center = last_armmarker_center[point_id]
     error_x = radar_center[0] - marker_center[0]
     error_y = radar_center[1] - marker_center[1]

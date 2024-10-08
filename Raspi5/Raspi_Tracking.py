@@ -13,7 +13,7 @@ picam2.start()
 # Initialize selected_point
 point_id = 0
 marker_num = 1
-tolerance = 600
+tolerance = 300
 initial_skip_frames = 24
 frame_counter = 0
 
@@ -59,7 +59,8 @@ while start_tracking:
     key = cv2.waitKey(1) & 0xFF
     if key in  [ord('1'), ord('2')]:
         point_id = key - ord('0') - 1                                               # choose tracking which point via keyboard input
-    # error = calculate_error(point_id, last_ArmMarker_centers, Radar_center)     # calculate the error distance (x, y)[pixel]
+    error = calculate_error(point_id, last_ArmMarker_centers, last_Radar_center)     # calculate the error distance (x, y)[pixel]
+    print("Error", error)
     # send2pc(error, server_ip='WINDOWS PC IP ADDRESS', server_port=5005)         # send error value to PC
 
     display(frame, point_id, last_ArmMarker_centers, last_Radar_center)                          # display 2 marker centers and 1 radar centers
