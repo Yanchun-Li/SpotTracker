@@ -31,7 +31,15 @@ def convert_frame(frame):
     edges = cv2.Canny(blurred, 50, 150)
     contours, _ = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     return contours  
+# def convert_frame(frame):
 
+#     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+#     adaptive_thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+#                                             cv2.THRESH_BINARY_INV, 11, 2)
+#     blurred = cv2.GaussianBlur(adaptive_thresh, (5, 5), 0)
+#     edges = cv2.Canny(blurred, 50, 150)  # 调整这两个参数，找到最合适的边缘检测阈值
+#     contours, _ = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+#     return contours
 #--------------------------Radar Center-----------------------------------
 def detect_radar_center(contours):
     largest_contour = max(contours, key=cv2.contourArea)
@@ -40,6 +48,28 @@ def detect_radar_center(contours):
         cx = int(M["m10"] / M["m00"])
         cy = int(M["m01"] / M["m00"])
         return (cx, cy)    
+
+# def detect_radar_center(image, min_area=500):
+#     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+#     adaptive_thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
+#                                             cv2.THRESH_BINARY_INV, 11, 2)
+#     kernel = np.ones((5, 5), np.uint8)
+#     morph = cv2.morphologyEx(adaptive_thresh, cv2.MORPH_CLOSE, kernel)
+
+#     contours, _ = cv2.findContours(morph, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+#     contours = [contour for contour in contours if cv2.contourArea(contour) > min_area]
+#     if len(contours) == 0:
+#         return None
+
+#     largest_contour = max(contours, key=cv2.contourArea)
+#     M = cv2.moments(largest_contour)
+
+#     if M["m00"] != 0:
+#         cx = int(M["m10"] / M["m00"])
+#         cy = int(M["m01"] / M["m00"])
+#         return (cx, cy)
+
+#     return None
 
 
 #--------------------------- Marker Center ------------------------

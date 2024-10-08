@@ -13,7 +13,9 @@ picam2.start()
 # Initialize selected_point
 point_id = 0
 marker_num = 1
+tolerance = 30
 last_ArmMarker_centers = [(0, 0)] if marker_num == 1 else [(0,0), (0,0)]
+last_Radar_center = (0, 0)
 
 start_tracking = False
 while True:
@@ -35,10 +37,15 @@ while start_tracking:
     contours = convert_frame(frame)
 
     ArmMarker_centers = RectMarkerCenter_Contour(marker_num, contours, last_ArmMarker_centers)                       # center of markers on arms (2 centers)
-    if len(ArmMarker_centers) > 0:
+    arm_moved_dist = sum(abs(ArmMarker_centers[i][j] - last_ArmMarker_centers[i][j]) for i in range(marker_num) for j in range(2))
+    if len(ArmMarker_centers) > 0 and (arm_moved_dist < tolerance):
         last_ArmMarker_centers = ArmMarker_centers.copy()                           # update marker centers
         
     Radar_center = detect_radar_center(contours)                                # center of radar point
+    rad_moved_dist = sum(abs(Radar_center[i] - last_Radar_center[i]) for i in range(2))
+    if len(Radar_center) > 0 and rad_moved_dist < tolerance:
+        last_Radar_center = Radar_center.copy()
+
 
     key = cv2.waitKey(1) & 0xFF
     if key in  [ord('1'), ord('2')]:
