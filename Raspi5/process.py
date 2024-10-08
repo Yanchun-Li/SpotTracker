@@ -41,7 +41,7 @@ def convert_frame(frame):
 #         cy = int(M["m01"] / M["m00"])
 #         return (cx, cy)    
 
-def detect_radar_center(contours, last_detected_center, min_aspect_ratio=0.5, max_aspect_ratio=1.5):
+def detect_radar_center(contours, last_detected_center, min_aspect_ratio=0.9, max_aspect_ratio=1.1, min_area_ratio=0.8, max_area_ratio=1.2):
     detected_center = None
     A_detected = False
 
@@ -53,9 +53,17 @@ def detect_radar_center(contours, last_detected_center, min_aspect_ratio=0.5, ma
             if MA == 0:  # Avoid division by zero
                 continue
 
-            # Filter based on the aspect ratio and size to detect circles
+            # Filter based on the aspect ratio to detect circles
             aspect_ratio = ma / MA  # Ratio of minor to major axis
-            if min_aspect_ratio <= aspect_ratio <= max_aspect_ratio and 1 < MA < 200:  # Adjust thresholds as needed
+            contour_area = cv2.contourArea(contour)  # 轮廓的实际面积
+            ellipse_area = np.pi * (MA / 2) * (ma / 2)  # 椭圆的面积公式：π * 长半轴 * 短半轴
+
+            # 面积比值
+            area_ratio = contour_area / ellipse_area
+
+            # 过滤长短轴比和面积比接近圆形的轮廓
+            if (min_aspect_ratio <= aspect_ratio <= max_aspect_ratio and
+                min_area_ratio <= area_ratio <= max_area_ratio and 1 < MA < 200):  # 调整范围以过滤掉非圆形的轮廓
                 detected_center = (int(x), int(y))
                 A_detected = True  # 标记A被检测到
                 break  # 只需要检测一个标志物，找到后即可退出循环
@@ -65,6 +73,7 @@ def detect_radar_center(contours, last_detected_center, min_aspect_ratio=0.5, ma
         detected_center = last_detected_center  # 使用上次的位置
 
     return detected_center
+
 
 
 #--------------------------- Marker Center ------------------------
