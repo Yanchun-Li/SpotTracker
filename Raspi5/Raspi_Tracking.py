@@ -21,6 +21,8 @@ last_ArmMarker_centers = [(0, 0)] if marker_num == 1 else [(0,0), (0,0)]
 last_Radar_center = (0, 0)
 start_tracking = False
 
+server_ip = '192.168.100.29'
+
 while True:
     frame = picam2.capture_array()
     cv2.imshow("Press 'Enter' to start tracking", frame)
@@ -61,7 +63,7 @@ while start_tracking:
         point_id = key - ord('0') - 1                                               # choose tracking which point via keyboard input
     error = calculate_error(point_id, last_ArmMarker_centers, last_Radar_center)     # calculate the error distance (x, y)[pixel]
     print("Error", error)
-    # send2pc(error, server_ip='WINDOWS PC IP ADDRESS', server_port=5005)         # send error value to PC
+    send2pc(error, server_ip, server_port=5005)         # send error value to PC
 
     display(frame, point_id, last_ArmMarker_centers, last_Radar_center)                          # display 2 marker centers and 1 radar centers
 
