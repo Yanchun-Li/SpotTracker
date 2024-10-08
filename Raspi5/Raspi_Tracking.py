@@ -16,7 +16,7 @@ marker_num = 1
 
 while True:
     frame = picam2.capture_array()
-    contours = convert_frame(contours)
+    contours = convert_frame(frame)
 
     ArmMarker_centers = CirMarkerCenter_Contour(marker_num, contours)                       # center of markers on arms (2 centers)
     last_ArmMarker_centers = ArmMarker_centers.copy()                           # update marker centers
