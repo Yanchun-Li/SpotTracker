@@ -195,14 +195,13 @@ def send2pc(value, server_ip, server_port=5005):
 
 
 def display(frame, point_id, ArmMarker_centers, Radar_center):
-    print(ArmMarker_centers)
     # 计算和输出选中点的角度，并同时显示两个圆
     for i, center in enumerate(ArmMarker_centers):
         # 设置颜色：红色表示选中的点，绿色表示未选中的点
         color = (0, 0, 255) if i == point_id else (0, 255, 0)
         cv2.circle(frame, (center[0], center[1]), 3, color, -1)
     
-    cv2.circle(frame, (Radar_center[0], Radar_center[1]), 3, (0, 0, 255), -1)  
+    cv2.circle(frame, (Radar_center[0], Radar_center[1]), 3, (0, 100, 100), -1)  
     # draw a line between selected point and Radar center
     cv2.line(frame, (Radar_center[0], Radar_center[1]), (ArmMarker_centers[point_id][0], ArmMarker_centers[point_id][1]), (0, 0, 255), 1)
     cv2.imshow('Tracking', frame)
