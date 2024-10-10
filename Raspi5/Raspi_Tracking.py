@@ -62,13 +62,13 @@ while start_tracking:
         if len(Radar_center) > 0 and rad_moved_dist < tolerance:
             last_Radar_center = Radar_center
 
-    print(f"ARM{last_ArmMarker_centers}, RADAR{last_Radar_center}")
+    # print(f"ARM{last_ArmMarker_centers}, RADAR{last_Radar_center}")
 
     key = cv2.waitKey(1) & 0xFF
     if key in  [ord('1'), ord('2')]:
         point_id = key - ord('0') - 1                                               # choose tracking which point via keyboard input
     error = calculate_error(point_id, last_ArmMarker_centers, last_Radar_center)     # calculate the error distance (x, y)[pixel]
-    print("Error", error)
+    # print("Error", error)
     message = json.dumps(error)
     sock.sendall(message.encode())
     print(f"Sending: {message}")
