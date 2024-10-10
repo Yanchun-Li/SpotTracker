@@ -8,9 +8,9 @@ Kp = 1;
 Ki = 0.1;
 Kd = 0.05;
 
-intergral_x = 0;
+integral_x = 0;
 previous_error_x = 0;
-intergral_y = 0;
+integral_y = 0;
 previous_error_y = 0;
 dt = 0.1;
 
@@ -147,16 +147,16 @@ while true
     
     disp(['Received error: e_x = ', num2str(e_x), ', e_y = ', num2str(e_y)]);
     
-    % ----------------- PID Control (X-axis) -----------------
+    % ----------------- PID Control (Y-axis) -----------------
     integral_x = integral_x + e_x * dt;
     derivative_x = (e_x - previous_error_x) / dt;
-    P_x = Kp * e_x;
+    P_x = Kp * e_y;
     I_x = Ki * integral_x;
     D_x = Kd * derivative_x;
-    % output_x = P_x + I_x + D_x; 
-    output_x = P_x
-    previous_error_x = e_x; 
-    disp(['PID X: P_x = ', num2str(P_x),'Output = ', num2str(output_x)]);
+    % output_y = P_y + I_y + D_y;
+    ouput_x = P_x
+    previous_error_x = e_x;
+    disp(['PID Y: P_y = ', num2str(P_x),'Output = ', num2str(output_x)]);
     
     % ----------------- PID Control (Y-axis) -----------------
     integral_y = integral_y + e_y * dt;
@@ -165,14 +165,17 @@ while true
     I_y = Ki * integral_y;
     D_y = Kd * derivative_y;
     % output_y = P_y + I_y + D_y;
-    ouput_y = P_y
+    output_y = P_y;
     previous_error_y = e_y;
     disp(['PID Y: P_y = ', num2str(P_x),'Output = ', num2str(output_x)]);
 
     % ---------------- Move stage [2um/pulse] ---------------------
-    xpulse = output_x * 1000 / 2;                       % x axis convert pixel to pulse
+    xpulse = output_x * 1000 / 2;                       % x axis convert pixel to pulse [2um/pulse]
     ypulse = output_y * 1000 / 2;                       % y axis convert pixel to pulse
     
+    % xpulse = PIDmovestage(e_x, previous_error_x)
+    % ypulse = PIDmovestage(e_y, previous_error_y)
+
     fprintf(stg1, strcat('M:2+P', num2str(xpulse)));    % move x axis
     fprintf(stg2, strcat('M:1+P', num2str(ypulse)));    % move y axis
     
@@ -194,7 +197,7 @@ while true
 end
 
 figure
-figureHandle = figure(1)                                                % choose to save which figure
+figureHandle = figure(1);                                                % choose to save which figure
 saveResultsAndDisconnect(figureHandle, osc, amp, fg, mre2, comment);    % save results and disconnect osc, amp, fg
 
 fclose(t);
@@ -214,28 +217,6 @@ function mywait(obj)
         pause(0.1)
         fprintf(obj, '!:');
         status=fgetl(obj);
-    end
-end
-
-function xy_value = angle_to_xy(angle)
-    xy_value = tan(deg2rad(angle)) / tan(deg2rad(50));
-end
-
-function xy_value = clamp(value, min_value, max_value)
-    xy_value = max(min_value, min(value, max_value));
-end
-
-function step = setStep(currentVoltage, step)
-    if currentVoltage < 0.1
-        step = 1*sign(step); 
-    elseif currentVoltage < 0.2
-        step = 0.2*sign(step);
-    elseif currentVoltage < 0.4
-        step = 0.1*sign(step);
-    elseif currentVoltage < 0.6
-        step = 0.05*sign(step);
-    else
-        step = 0.02*sign(step);
     end
 end
 
@@ -289,6 +270,20 @@ function [optimalX, optimalY] = gradient_descent(initialX, initialY, osc, maxIte
     
     optimalX = X;
     optimalY = Y;
+end
+
+function pulse, previous_e = PIDmovestage(e, previous_e, integral)
+    % ----------------- PID Control (X-axis) -----------------
+    integral_x = integral + e * dt;
+    derivative_x = (e - previous_e) / dt;
+    P_x = Kp * e_x;
+    I_x = Ki * integral_x;
+    D_x = Kd * derivative_x;
+    % output_x = P_x + I_x + D_x; 
+    output_x = P_x
+    previous_e = e_x; 
+    pulse = output_x * 1000 / 2;                       % x axis convert pixel to pulse [2um/pulse]
+    disp(['PID X: P_x = ', num2str(P_x),'Output = ', num2str(output_x)]);
 end
 
 function xy_value = angle_to_xy(angle)
