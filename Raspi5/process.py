@@ -44,6 +44,7 @@ def convert_frame(frame):
 
 def detect_radar_center(contours, last_detected_center, min_aspect_ratio=0.9, max_aspect_ratio=1.1, min_area_ratio=0.8, max_area_ratio=1.2):
     detected_center = None
+    detected_contour = None
     A_detected = False
 
     for contour in contours:
@@ -66,6 +67,7 @@ def detect_radar_center(contours, last_detected_center, min_aspect_ratio=0.9, ma
             if (min_aspect_ratio <= aspect_ratio <= max_aspect_ratio and
                 min_area_ratio <= area_ratio <= max_area_ratio and 1 < MA < 200):  # 调整范围以过滤掉非圆形的轮廓
                 detected_center = (int(x), int(y))
+                detected_contour = contour
                 A_detected = True  # 标记A被检测到
                 break  # 只需要检测一个标志物，找到后即可退出循环
 
@@ -73,59 +75,63 @@ def detect_radar_center(contours, last_detected_center, min_aspect_ratio=0.9, ma
     if not A_detected:
         detected_center = last_detected_center  # 使用上次的位置
 
-    return detected_center
+    return detected_center, detected_contour
 
 
 
 #--------------------------- Marker Center ------------------------
 def RectMarkerCenter_Contour(marker_num, contours, last_detected_centers):
     detected_centers = []
+    detected_contours = []
     A_detected = False
     B_detected = False
     
     for contour in contours:
         peri = cv2.arcLength(contour, True)
         approx = cv2.approxPolyDP(contour, 0.02 * peri, True)
-        
-        # 如果逼近的多边形有4个顶点，可能是矩形
+
         if len(approx) == 4:
             rect = cv2.boundingRect(approx)
             (x, y, w, h) = rect
             aspect_ratio = float(w) / h
 
-            # 根据宽高比过滤近似矩形的区域，通常我们认为宽高比在一定范围内(near to square and w,h are larger than 10 pixels)
             if 0.8 <= aspect_ratio <= 1.2 and w > 2 and h > 2:
                 detected_center = (int(x + w / 2), int(y + h / 2))
                 if marker_num == 1:
                     detected_centers.append(detected_center)
+                    detected_contours.append(contour)
                     A_detected = True
                 else:
-                    # 根据之前检测到的位置判断当前检测到的是A还是B
                     if np.linalg.norm(np.array(detected_center) - np.array(last_detected_centers[0])) < \
                     np.linalg.norm(np.array(detected_center) - np.array(last_detected_centers[1])):
                         if not A_detected:
                             detected_centers.append(detected_center)
+                            detected_contours.append(contour)
                             A_detected = True  # 标记A被检测到
                         elif np.linalg.norm(np.array(detected_center) - np.array(detected_centers[0])) > MIN_DISTANCE_BETWEEN_MARKERS:
                             detected_centers.append(detected_center)
+                            detected_contours.append(contour)
                             B_detected = True  # 标记B被检测到
                     else:
                         if not B_detected:
                             detected_centers.append(detected_center)
+                            detected_contours.append(contour)
                             B_detected = True  # 标记B被检测到
                         elif np.linalg.norm(np.array(detected_center) - np.array(detected_centers[0])) > MIN_DISTANCE_BETWEEN_MARKERS:
                             detected_centers.append(detected_center)
+                            detected_contours.append(contour)
                             A_detected = True  # 标记A被检测到
 
-    # 限制最多检测到marker_num个矩形中心
     detected_centers = detected_centers[:marker_num]
-    # 如果检测到的矩形少于2个，使用上次检测到的位置补全
+    detected_contours = detected_contours[:marker_num]
     if not A_detected and len(last_detected_centers) > 0:
         detected_centers.insert(0, last_detected_centers[0])  # 补充A的位置
+        detected_contours.insert(0, None)
     if not B_detected and len(last_detected_centers) > 1:
         detected_centers.append(last_detected_centers[1])  # 补充B的位置
+        detected_contours.insert(None)
 
-    return detected_centers
+    return detected_centers, detected_contours
 
 
 #--------------------------- Marker Center ------------------------
@@ -196,7 +202,7 @@ def calculate_error(point_id, last_armmarker_center, radar_center):
 #     sock.close()
 
 
-def display(frame, point_id, ArmMarker_centers, Radar_center):
+def display(frame, point_id, ArmMarker_centers, Radar_center, ArmMarker_contours, Radar_contour):
     # 计算和输出选中点的角度，并同时显示两个圆
     for i, center in enumerate(ArmMarker_centers):
         # 设置颜色：红色表示选中的点，绿色表示未选中的点
@@ -206,6 +212,13 @@ def display(frame, point_id, ArmMarker_centers, Radar_center):
     cv2.circle(frame, (Radar_center[0], Radar_center[1]), 3, (0, 100, 100), -1)  
     # draw a line between selected point and Radar center
     cv2.line(frame, (Radar_center[0], Radar_center[1]), (ArmMarker_centers[point_id][0], ArmMarker_centers[point_id][1]), (0, 0, 255), 1)
+    if ArmMarker_contours is not None:
+        for contour in ArmMarker_contours:
+            if contour is not None:
+                cv2.drawContours(frame, [contour], -1, (255, 0, 0), 1)
+    if Radar_contour is not None:
+        cv2.drawContours(frame, [Radar_contour], -1, (255, 0, 0), 1)
+    
     cv2.imshow('Tracking', frame)
 
 

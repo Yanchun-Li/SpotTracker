@@ -47,8 +47,8 @@ while start_tracking:
     frame = picam2.capture_array()
     contours = convert_frame(frame)
 
-    ArmMarker_centers = RectMarkerCenter_Contour(marker_num, contours, last_ArmMarker_centers)                       # center of markers on arms (2 centers)
-    Radar_center = detect_radar_center(contours, last_Radar_center)                                # center of radar point
+    ArmMarker_centers, ArmMarker_contours = RectMarkerCenter_Contour(marker_num, contours, last_ArmMarker_centers)                       # center of markers on arms (2 centers)
+    Radar_center, Radar_contour = detect_radar_center(contours, last_Radar_center)                                # center of radar point
 
     if frame_counter < initial_skip_frames:
         frame_counter += 1
@@ -73,7 +73,7 @@ while start_tracking:
     sock.sendall(message.encode())
     print(f"Sending: {message}")
 
-    display(frame, point_id, last_ArmMarker_centers, last_Radar_center)                          # display 2 marker centers and 1 radar centers
+    display(frame, point_id, last_ArmMarker_centers, last_Radar_center, ArmMarker_contours, Radar_contour)                          # display 2 marker centers and 1 radar centers
 
     if key == ord('q'):
         break

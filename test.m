@@ -79,24 +79,24 @@ while true
     end
     % ----------------- PID Control (Y-axis) -----------------
     integral_x = integral_x + e_x * dt;
-    derivative_x = (e_x - previous_error_x) / dt;
+    % derivative_x = (e_x - previous_error_x) / dt;
     P_x = Kp * e_y;
-    I_x = Ki * integral_x;
-    D_x = Kd * derivative_x;
+    % I_x = Ki * integral_x;
+    % D_x = Kd * derivative_x;
     % output_y = P_y + I_y + D_y;
-    output_x = P_x
-    previous_error_x = e_x;
+    output_x = P_x;
+    % previous_error_x = e_x;
     disp(['PID Y: P_y = ', num2str(P_x),'Output = ', num2str(output_x)]);
     
     % ----------------- PID Control (Y-axis) -----------------
     integral_y = integral_y + e_y * dt;
-    derivative_y = (e_y - previous_error_y) / dt;
+    % derivative_y = (e_y - previous_error_y) / dt;
     P_y = Kp * e_y;
-    I_y = Ki * integral_y;
-    D_y = Kd * derivative_y;
+    % I_y = Ki * integral_y;
+    % D_y = Kd * derivative_y;
     % output_y = P_y + I_y + D_y;
     output_y = P_y;
-    previous_error_y = e_y;
+    % previous_error_y = e_y;
     disp(['PID Y: P_y = ', num2str(P_y),'Output = ', num2str(output_y)]);
 
     % ---------------- Move stage [2um/pulse] ---------------------
