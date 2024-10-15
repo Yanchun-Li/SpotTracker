@@ -28,7 +28,7 @@ MAX_CONTOUR_AREA = 10000  # 最大轮廓面积阈值
 
 def convert_frame(frame):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.GaussianBlur(gray, (5,5), 0)
+    blurred = cv2.GaussianBlur(gray, (3,3), 0)
     edges = cv2.Canny(blurred, 50, 150)
     contours, _ = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     return contours  
@@ -42,7 +42,7 @@ def convert_frame(frame):
 #         cy = int(M["m01"] / M["m00"])
 #         return (cx, cy)    
 
-def detect_radar_center(contours, last_detected_center, min_aspect_ratio=0.9, max_aspect_ratio=1.1, min_area_ratio=0.8, max_area_ratio=1.2):
+def detect_radar_center(contours, last_detected_center, min_aspect_ratio=0.95, max_aspect_ratio=1.05, min_area_ratio=0.9, max_area_ratio=1.1):
     detected_center = None
     detected_contour = None
     A_detected = False
@@ -203,22 +203,23 @@ def calculate_error(point_id, last_armmarker_center, radar_center):
 
 
 def display(frame, point_id, ArmMarker_centers, Radar_center, ArmMarker_contours, Radar_contour):
-    # 计算和输出选中点的角度，并同时显示两个圆
+    if frame.shape[0] != 480 or frame.shape[1] != 640:
+        frame = cv2.resize(frame, (640, 480))
+    
     for i, center in enumerate(ArmMarker_centers):
-        # 设置颜色：红色表示选中的点，绿色表示未选中的点
         color = (0, 0, 255) if i == point_id else (0, 255, 0)
         cv2.circle(frame, (center[0], center[1]), 3, color, -1)
     
-    cv2.circle(frame, (Radar_center[0], Radar_center[1]), 3, (0, 100, 100), -1)  
-    # draw a line between selected point and Radar center
-    cv2.line(frame, (Radar_center[0], Radar_center[1]), (ArmMarker_centers[point_id][0], ArmMarker_centers[point_id][1]), (0, 0, 255), 1)
+    cv2.circle(frame, (Radar_center[0], Radar_center[1]), 3, (0, 100, 100), -1)
+    cv2.line(frame, (Radar_center[0], Radar_center[1]), (ArmMarker_centers[point_id][0], ArmMarker_centers[point_id][1]), (0, 0, 255), 2)
     if ArmMarker_contours is not None:
         for contour in ArmMarker_contours:
             if contour is not None:
-                cv2.drawContours(frame, [contour], -1, (255, 0, 0), 1)
+                cv2.drawContours(frame, [contour], -1, (255, 0, 0), 2)
     if Radar_contour is not None:
-        cv2.drawContours(frame, [Radar_contour], -1, (255, 0, 0), 1)
-    
+        cv2.drawContours(frame, [Radar_contour], -1, (255, 0, 0), 2)
+
+    cv2.resizeWindow('Tracking', 640, 480)
     cv2.imshow('Tracking', frame)
 
 
