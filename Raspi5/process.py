@@ -80,7 +80,7 @@ def detect_radar_center(contours, last_detected_center, min_aspect_ratio=0.95, m
 
 
 #--------------------------- Marker Center ------------------------
-def RectMarkerCenter_Contour(marker_num, contours, last_detected_centers):
+def RectMarkerCenter_Contour(marker_num, contours, last_detected_centers, min_area = 100):
     detected_centers = []
     detected_contours = []
     A_detected = False
@@ -89,6 +89,10 @@ def RectMarkerCenter_Contour(marker_num, contours, last_detected_centers):
     for contour in contours:
         peri = cv2.arcLength(contour, True)
         approx = cv2.approxPolyDP(contour, 0.02 * peri, True)
+
+        area = cv2.contourArea(contour)
+        if area < min_area:
+            continue
 
         if len(approx) == 4:
             rect = cv2.boundingRect(approx)
