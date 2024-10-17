@@ -29,8 +29,8 @@ MAX_CONTOUR_AREA = 10000  # 最大轮廓面积阈值
 def convert_frame(frame):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (3,3), 0)
-    edges = cv2.Canny(blurred, 50, 150)
-    contours, _ = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    edges = cv2.Canny(blurred, 25, 70)
+    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     return contours  
 
 #--------------------------Radar Center-----------------------------------

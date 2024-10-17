@@ -47,8 +47,8 @@ while start_tracking:
     frame = picam2.capture_array()
     contours = convert_frame(frame)
 
-    ArmMarker_centers, ArmMarker_contours = RectMarkerCenter_Contour(marker_num, contours, last_ArmMarker_centers)                       # center of markers on arms (2 centers)
-    Radar_center, Radar_contour = detect_radar_center(contours, last_Radar_center)                                # center of radar point
+    ArmMarker_centers, ArmMarker_contours = RectMarkerCenter_Contour(marker_num, contours, last_ArmMarker_centers)            # center of markers on arms (2 centers)
+    Radar_center, Radar_contour = detect_radar_center(contours, last_Radar_center)                                            # center of radar point
 
     if frame_counter < initial_skip_frames:
         frame_counter += 1
@@ -66,7 +66,7 @@ while start_tracking:
 
     key = cv2.waitKey(1) & 0xFF
     if key in  [ord('1'), ord('2')]:
-        point_id = key - ord('0') - 1                                               # choose tracking which point via keyboard input
+        point_id = key - ord('0') - 1                                                # choose tracking which point via keyboard input
     error = calculate_error(point_id, last_ArmMarker_centers, last_Radar_center)     # calculate the error distance (x, y)[pixel]
     print("Error", error)
     # message = json.dumps(error)
