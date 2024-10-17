@@ -1,6 +1,6 @@
 clc; clear;
 server_port = 5005;
-tcpServer = tcpserver('0.0.0.0', server_port);
+tcpServer = tcpserver('192.168.100.29', server_port);
 disp(['TCP server listening on port ', num2str(server_port)]);
 
 while true
