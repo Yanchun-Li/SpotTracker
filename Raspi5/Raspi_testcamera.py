@@ -47,7 +47,8 @@ while start_tracking:
     contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     cv2.namedWindow("grayimage", cv2.WINDOW_NORMAL)
-    cv2.resizeWindow("grayimage", 960, 720)
+    cv2.resizeWindow("grayimage", 640, 480)
+    cv2.imshow("blurredimage", blurred)
     cv2.imshow("grayimage", edges)
     cv2.drawContours(frame, contours, -1, (0, 255, 0), 2)
     cv2.imshow("contours", frame)
