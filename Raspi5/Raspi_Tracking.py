@@ -37,7 +37,8 @@ while True:
         cv2.destroyAllWindows()
         exit()
 
-server_ip = '192.168.100.19'
+# PC ip address
+server_ip = '192.168.100.142'
 server_port = 5005
 # Establish the TCP connection outside the loop
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
