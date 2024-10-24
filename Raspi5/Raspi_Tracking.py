@@ -37,11 +37,11 @@ while True:
         cv2.destroyAllWindows()
         exit()
 
-server_ip = '192.168.100.29'
+server_ip = '192.168.100.19'
 server_port = 5005
-# # Establish the TCP connection outside the loop
-# sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# sock.connect((server_ip, server_port))  # Connect to the server once
+# Establish the TCP connection outside the loop
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.connect((server_ip, server_port))  # Connect to the server once
 
 while start_tracking:
     frame = picam2.capture_array()
@@ -69,9 +69,9 @@ while start_tracking:
         point_id = key - ord('0') - 1                                                # choose tracking which point via keyboard input
     error = calculate_error(point_id, last_ArmMarker_centers, last_Radar_center)     # calculate the error distance (x, y)[pixel]
     print("Error", error)
-    # message = json.dumps(error)
-    # sock.sendall(message.encode())
-    # print(f"Sending: {message}")
+    message = json.dumps(error)
+    sock.sendall(message.encode())
+    print(f"Sending: {message}")
 
     cv2.namedWindow('Tracking', cv2.WINDOW_NORMAL)
     cv2.resizeWindow('Tracking', 640, 480)
