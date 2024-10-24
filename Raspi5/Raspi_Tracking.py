@@ -70,7 +70,7 @@ while start_tracking:
         point_id = key - ord('0') - 1                                                # choose tracking which point via keyboard input
     error = calculate_error(point_id, last_ArmMarker_centers, last_Radar_center)     # calculate the error distance (x, y)[pixel]
     print("Error", error)
-    message = json.dumps(error)
+    message = json.dumps(error) + "\n"
     sock.sendall(message.encode())
     print(f"Sending: {message}")
 
