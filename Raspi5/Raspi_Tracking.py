@@ -25,6 +25,7 @@ start_tracking = False
 
 while True:
     frame = picam2.capture_array()
+    frame = cv2.rotate(frame, cv2.ROTATE_180)
     cv2.imshow("Press 'Enter' to start tracking", frame)
 
     key = cv2.waitKey(1) & 0xFF
@@ -46,6 +47,7 @@ sock.connect((server_ip, server_port))  # Connect to the server once
 
 while start_tracking:
     frame = picam2.capture_array()
+    frame = cv2.rotate(frame, cv2.ROTATE_180)
     contours = convert_frame(frame)
 
     ArmMarker_centers, ArmMarker_contours = RectMarkerCenter_Contour(marker_num, contours, last_ArmMarker_centers)            # center of markers on arms (2 centers)
