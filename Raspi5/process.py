@@ -26,8 +26,7 @@ MAX_CONTOUR_AREA = 10000  # 最大轮廓面积阈值
 #     theta_value = math.degrees(math.atan(y / l))
 #     return max(-50, min(50, theta_value))
 
-def convert_frame(frame):
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+def convert_frame(gray):
     blurred = cv2.GaussianBlur(gray, (3,3), 0)
     edges = cv2.Canny(blurred, 25, 70)
     contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -77,7 +76,45 @@ def detect_radar_center(contours, last_detected_center, min_aspect_ratio=0.95, m
 
     return detected_center, detected_contour
 
+def detect_laser_center(gray, last_detected_center, min_area_ratio=0.9, max_area_ratio=1.1):
+    # �ҵ��������ֵ����λ��
+    minVal, maxVal, minLoc, maxLoc = cv2.minMaxLoc(gray)
 
+    # ��ֵ��ͼ��ֻ����������ߵ�����
+    _, threshold = cv2.threshold(gray, maxVal - 10, 255, cv2.THRESH_BINARY)
+
+    # ʹ����̬ѧ������ȥ������
+    kernel = np.ones((3, 3), np.uint8)
+    cleaned = cv2.morphologyEx(threshold, cv2.MORPH_OPEN, kernel, iterations=2)
+
+    # ��������
+    contours, _ = cv2.findContours(cleaned, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    detected_center = None
+
+    for contour in contours:
+        if len(contour) >= 5:  # ���� 5 �������������Բ
+            ellipse = cv2.fitEllipse(contour)
+            (x, y), (MA, ma), angle = ellipse  # ���ĵ㡢���ᡢ�������ת�Ƕ�
+
+            if MA == 0:  # ������� 0
+                continue
+
+            # ����������Թ��˵���Բ�ε�����
+            contour_area = cv2.contourArea(contour)
+            ellipse_area = np.pi * (MA / 2) * (ma / 2)
+            area_ratio = contour_area / ellipse_area
+
+            # ���˵���Բ�ε����������������Ĺ��
+            if min_area_ratio <= area_ratio <= max_area_ratio and 1 < MA < 200:
+                detected_center = (int(x), int(y))
+                max_area = contour_area
+
+    # ���û�м�⵽��ߣ���ʹ���ϴεļ����
+    if detected_center is None:
+        detected_center = last_detected_center
+
+    return detected_center, contours
 
 #--------------------------- Marker Center ------------------------
 def RectMarkerCenter_Contour(marker_num, contours, last_detected_centers, min_area = 100):
@@ -220,8 +257,9 @@ def display(frame, point_id, ArmMarker_centers, Radar_center, ArmMarker_contours
         for contour in ArmMarker_contours:
             if contour is not None:
                 cv2.drawContours(frame, [contour], -1, (255, 0, 0), 2)
-    if Radar_contour is not None:
-        cv2.drawContours(frame, [Radar_contour], -1, (255, 0, 0), 2)
+    if Radar_contour is not None and len(Radar_contour) > 0:
+        # print("Radar contour:", Radar_contour)
+        cv2.drawContours(frame, Radar_contour, -1, (255, 0, 0), 2)
 
     cv2.resizeWindow('Tracking', 640, 480)
     cv2.imshow('Tracking', frame)

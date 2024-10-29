@@ -4,7 +4,7 @@ import json
 import numpy as np
 from picamera2 import Picamera2
 
-from process import convert_frame, RectMarkerCenter_Contour, detect_radar_center, calculate_error,  display
+from process import convert_frame, RectMarkerCenter_Contour, detect_radar_center, detect_laser_center, calculate_error,  display
 
 # Initialize Picamera2
 picam2 = Picamera2()
@@ -48,11 +48,12 @@ sock.connect((server_ip, server_port))  # Connect to the server once
 while start_tracking:
     frame = picam2.capture_array()
     frame = cv2.rotate(frame, cv2.ROTATE_180)
-    contours = convert_frame(frame)
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
+    contours = convert_frame(gray)
     ArmMarker_centers, ArmMarker_contours = RectMarkerCenter_Contour(marker_num, contours, last_ArmMarker_centers)            # center of markers on arms (2 centers)
-    Radar_center, Radar_contour = detect_radar_center(contours, last_Radar_center)                                            # center of radar point
-
+    # Radar_center, Radar_contour = detect_radar_center(contours, last_Radar_center)                                            # center of radar point
+    Radar_center, Radar_contour = detect_laser_center(gray, last_Radar_center)
     if frame_counter < initial_skip_frames:
         frame_counter += 1
         last_ArmMarker_centers = ArmMarker_centers.copy()

@@ -1,6 +1,4 @@
 import cv2
-import socket
-import json
 import numpy as np
 from picamera2 import Picamera2
 
@@ -10,76 +8,61 @@ preview_config = picam2.create_preview_configuration()
 picam2.configure(preview_config)
 picam2.start()
 
-# ��ʼ������
-server_ip = '192.168.100.29'
-server_port = 5005
-start_tracking = False
-
-# ����ʼǰ�Ĵ�����ʾ
 while True:
+    # ����ͼ�񣨲��ı�ԭʼframe�ṹ��
     frame = picam2.capture_array()
-
-    # ��תͼ��180��
     frame = cv2.rotate(frame, cv2.ROTATE_180)
-
-    cv2.imshow("Press 'Enter' to start tracking", frame)
-
-    key = cv2.waitKey(1) & 0xFF
-    if key == 13:  # Enter ��
-        start_tracking = True
-        cv2.destroyAllWindows()
-        break
-    elif key == ord('q'):  # �� 'q' �˳�
-        picam2.stop()
-        cv2.destroyAllWindows()
-        exit()
-
-while start_tracking:
-    frame = picam2.capture_array()
-
-    # ��תͼ��180��
-    frame = cv2.rotate(frame, cv2.ROTATE_180)
-
-    # ͼ��Ԥ����
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-    # ��ǿ�Աȶȣ�����Ӧֱ��ͼ���⻯��
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    enhanced_gray = clahe.apply(gray)
+    # 1. �ҵ��������ֵ��������ֵ������
+    minVal, maxVal, minLoc, maxLoc = cv2.minMaxLoc(gray)
+    print(f"�������ֵ: {maxVal}��λ��: {maxLoc}")
 
-    # ��ֵ�˲�ȥ��
-    blurred = cv2.medianBlur(enhanced_gray, 5)
+    # 2. ��ֵ��ͼ��ֻ���������Ĳ���
+    _, threshold = cv2.threshold(gray, maxVal - 10, 255, cv2.THRESH_BINARY)
 
-    # Canny ��Ե���
-    edges = cv2.Canny(blurred, 30, 150)
+    # 3. ʹ����̬ѧ����ȥ������
+    kernel = np.ones((3, 3), np.uint8)
+    cleaned = cv2.morphologyEx(threshold, cv2.MORPH_OPEN, kernel, iterations=2)
 
-    # ʹ����̬ѧ�������Ӷ��ѱ�Ե
-    kernel = np.ones((5, 5), np.uint8)
-    edges = cv2.dilate(edges, kernel, iterations=1)
+    # 4. ��������
+    contours, _ = cv2.findContours(cleaned, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    # ������ HoughCircles ���Բ��
-    circles = cv2.HoughCircles(
-        blurred, cv2.HOUGH_GRADIENT, dp=1.2, minDist=30,
-        param1=50, param2=30, minRadius=10, maxRadius=100
-    )
+    # ��ʼ����ߵ�����
+    laser_center = None
 
-    # �����⵽Բ�Σ�����Բ��
-    if circles is not None:
-        circles = np.round(circles[0, :]).astype("int")
-        for (x, y, r) in circles:
-            cv2.circle(frame, (x, y), r, (0, 255, 0), 2)
-            cv2.rectangle(frame, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
+    # �����������ҵ������������
+    max_area = 0
+    for contour in contours:
+        area = cv2.contourArea(contour)
+        if area > max_area:
+            max_area = area
+            M = cv2.moments(contour)
+            if M["m00"] != 0:
+                cx = int(M["m10"] / M["m00"])
+                cy = int(M["m01"] / M["m00"])
+                laser_center = (cx, cy)
 
-    # ��ʾ�������ͼ��
-    cv2.imshow("Enhanced Gray", enhanced_gray)
-    cv2.imshow("Edge Image", edges)
-    cv2.imshow("Contours and Circles", frame)
+    # ����ҵ�������ģ�������λ��
+    if laser_center:
+        cx, cy = laser_center
+        cv2.circle(frame, (cx, cy), 5, (0, 0, 255), -1)  # ��������
+        print(f"�������: ({cx}, {cy}), ���: {max_area}")
 
-    # �ȴ������¼�
+    # ��ʾ������Ľ��
+    cv2.namedWindow("Thresholded Image", cv2.WINDOW_NORMAL)
+    cv2.resizeWindow("Thresholded Image", 640, 480)
+    cv2.namedWindow("Detected Laser Spot", cv2.WINDOW_NORMAL)
+    cv2.resizeWindow("Detected Laser Spot", 640, 480)
+
+    cv2.imshow("Thresholded Image", cleaned)  # ��ʾ������Ķ�ֵͼ
+    cv2.imshow("Detected Laser Spot", frame)  # ��ʾ�����
+
+    # �� 'q' ���˳�
     key = cv2.waitKey(1) & 0xFF
     if key == ord('q'):
         break
 
-# ֹͣ����͹رմ���
+# �ر���Դ
 picam2.stop()
 cv2.destroyAllWindows()
