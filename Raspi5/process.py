@@ -133,7 +133,7 @@ def RectMarkerCenter_Contour(marker_num, contours, last_detected_centers, min_ar
         detected_contours.insert(0, None)
     if not B_detected and len(last_detected_centers) > 1:
         detected_centers.append(last_detected_centers[1])  # 补充B的位置
-        detected_contours.insert(None)
+        detected_contours.insert(0, None)
 
     return detected_centers, detected_contours
 

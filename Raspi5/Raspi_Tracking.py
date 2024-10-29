@@ -14,7 +14,7 @@ picam2.start()
 
 # Initialize selected_point
 point_id = 0
-marker_num = 1
+marker_num = 2
 tolerance = 300
 initial_skip_frames = 24
 frame_counter = 0
@@ -38,7 +38,7 @@ while True:
         exit()
 
 # PC ip address
-server_ip = '192.168.100.142'
+server_ip = '192.168.100.172'
 server_port = 5005
 # Establish the TCP connection outside the loop
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -69,10 +69,11 @@ while start_tracking:
     if key in  [ord('1'), ord('2')]:
         point_id = key - ord('0') - 1                                                # choose tracking which point via keyboard input
     error = calculate_error(point_id, last_ArmMarker_centers, last_Radar_center)     # calculate the error distance (x, y)[pixel]
+    print("Marker ID", point_id + 1)
     print("Error", error)
     message = json.dumps(error) + "\n"
     sock.sendall(message.encode())
-    print(f"Sending: {message}")
+    # print(f"Sending: {message}")
 
     cv2.namedWindow('Tracking', cv2.WINDOW_NORMAL)
     cv2.resizeWindow('Tracking', 640, 480)
