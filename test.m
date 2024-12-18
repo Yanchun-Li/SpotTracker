@@ -1,24 +1,27 @@
 clc; clear;
 
 
-% ------------------ Setup Controller Stage ------------------
-stg1 = setup_serial_stage('COM4');
-stg2 = setup_serial_stage('COM8');
+%% ------------------ Setup Controller Stage ------------------
+% stg1 = setup_serial_stage('COM4');
+% stg2 = setup_serial_stage('COM8');
 
 % --------------- Configure Python environment----------------
 python_version = "C:\Users\Lenovo\AppData\Local\Programs\Python\Python310\python.exe";
-configure_python_env(python_version);  % Set Python environment
-port = "COM4";    % COM port, ensure the correct port is used
+pyenv("Version", python_version);
+optoMDC = py.importlib.import_module('optoMDC');
+disp("optoMDC module successfully imported!");
 
-% Connect to the mirror device (initialize once)
-try
-    optoMDC = py.importlib.import_module('optoMDC');
-    mre2 = optoMDC.connect(port=port);
-    disp(['Successfully connected to port: ', port]);
-catch e
-    disp(e.message);
-    return;
-end
+% Set COM port, hold duration, and angles
+port = "COM4";    % COM port, ensure the correct port is used
+mre2 = optoMDC.connect(port=port);
+disp(['Successfully connected to port: ', port]);
+
+ch_x = mre2.Mirror.Channel_0;
+ch_x.SetControlMode(optoMDC.Units.XY);
+static_input_x = ch_x.StaticInput;
+ch_y = mre2.Mirror.Channel_1;
+ch_y.SetControlMode(optoMDC.Units.XY);
+static_input_y = ch_y.StaticInput;
 
 % ---------------- Connect tcp/ip port ------------------
 server_port = 5005;
@@ -29,7 +32,7 @@ L = 5;              % distance from mirror to target[cm]
 alpha = 0.01;
 beta = 0.03;
 
-error_thres = 100;
+duration = 1;
 error_log = [];
 xs = 0; ys = 0;
 phi = 0; theta = 0;
@@ -51,32 +54,34 @@ while true
 
             disp(['Received error: ', num2str(e), 'ex, ey = ', num2str(ex, ey)]);
             % Received error: 384.6414   ex, ey = -382-45
-
-            if e < error_thres
-                disp(['Error is below threshold: ', num2str(e), 'Converting to HillClimb ...']);
+        
+            % xs = xs - alpha * (ex / e);
+            % ys = ys - alpha * (ey / e);
+            delta_phi = beta * (L / cos(phi)^2) * (ex / e);
+            delta_theta = beta * (L / cos(theta)^2) * (ey / e);
+            if delta_theta < 1 && delta_phi < 1
+                disp("Laser is close enough");
                 break;
             end
-        
-            xs = xs - alpha * (ex / e);
-            ys = ys - alpha * (ey / e);
-            phi = phi - beta * (L / cos(phi)^2);
-            theta = theta + beta * (L / cos(theta)^2);
 
-            rotate_mirror_at_angles(mre2, phi, theta)
+            phi = phi - delta_phi;
+            theta = theta + delta_theta;
 
-            fprintf('Stage Position: (xs: %f, ys: %f)\n', xs, ys);
+            rotate_mirror_at_angles(static_input_x, static_input_y, theta, phi, duration)
+
+            % fprintf('Stage Position: (xs: %f, ys: %f)\n', xs, ys);
             fprintf('Mirror Angles: (phi: %f, theta: %f)\n', phi, theta);
             
-            % convert pixel to pulse (0.5mm/pixel -> 500pulse/mm)
-            xpulse = round(xs * 1/2 * 1000 / 2);
-            ypulse = round(ys * 1/2 * 1000 / 2);  
-            % move stages           
-            fprintf(stg1, strcat('M:2+P', num2str(xpulse)));  
-            fprintf(stg2, strcat('M:1+P', num2str(ypulse))); 
-            fprintf(stg1, 'G:');
-            mywait(stg1);
-            fprintf(stg2, 'G:');
-            mywait(stg2);
+            % % convert pixel to pulse (0.5mm/pixel -> 500pulse/mm)
+            % xpulse = round(xs * 1/2 * 1000 / 2);
+            % ypulse = round(ys * 1/2 * 1000 / 2);  
+            % % move stages           
+            % fprintf(stg1, strcat('M:2+P', num2str(xpulse)));  
+            % fprintf(stg2, strcat('M:1+P', num2str(ypulse))); 
+            % fprintf(stg1, 'G:');
+            % mywait(stg1);
+            % fprintf(stg2, 'G:');
+            % mywait(stg2);
 
         catch e
             disp('Error processing data:');
@@ -86,18 +91,18 @@ while true
 end
 
 % ---------------------------- Hill Climbing Loop ----------------
-voltage_log = hill_climb(mre2, phi, theta);
+% voltage_log = hill_climb(mre2, phi, theta);
 
 % 保存误差和电压日志为 CSV 文件
 writematrix(error_log, 'error_log.csv');
-writematrix(voltage_log, 'voltage_log.csv');
+% writematrix(voltage_log, 'voltage_log.csv');
 
 disp('Error and voltage logs saved. Process complete.');
 
 
 % Return the mirror to the initial position
-ch_0.StaticInput.SetXY(0);
-ch_1.StaticInput.SetXY(0);
+static_input_x.SetXY(0);
+static_input_y.SetXY(0);
 disp('Mirror returned to initial position.');
 
 mre2.disconnect();
@@ -124,36 +129,23 @@ function stg = setup_serial_stage(port)
     mywait(stg);      
 end
 
-%--------------- Configure Python environment function -----------------
-function configure_python_env(python_version)
-    try
-        pyenv("Version", python_version);
-        disp("Python environment successfully configured!");
-    catch e
-        disp("Failed to configure Python environment. Please check the path.");
-        disp(e.message);
-    end
-end
 
 %--------- Core function to rotate mirror to specified angles --------
-function rotate_mirror_at_angles(mre2, angle_x, angle_y)
+function rotate_mirror_at_angles(static_input_x, static_input_y, theta, phi, duration)
     try
         % Calculate X and Y values for the given angles
-        xy_value_x = angle_to_xy(angle_x);
-        xy_value_y = angle_to_xy(angle_y);
+        xy_value_x = angle_to_xy(phi);
+        xy_value_y = angle_to_xy(theta);
 
-        % Set static input for X and Y channels
-        ch_0 = mre2.Mirror.Channel_0;
-        ch_0.StaticInput.SetXY(xy_value_x);
-
-        ch_1 = mre2.Mirror.Channel_1;
-        ch_1.StaticInput.SetXY(xy_value_y);
+        static_input_x.SetXY(xy_value_x);
+        static_input_y.SetXY(xy_value_y);
 
         % Print the set angles and XY values
-        fprintf('Set angles: X-axis = %f°, Y-axis = %f°\n', angle_x, angle_y);
+        fprintf('Set angles: X-axis = %f°, Y-axis = %f°\n', phi, theta);
         fprintf('XY values: X = %f, Y = %f\n', xy_value_x, xy_value_y);
-        
-        pause(0.1);
+
+        % Hold the current position for the specified duration
+        pause(duration);
         
     catch e
         disp('Error while operating the mirror device:');
