@@ -22,6 +22,18 @@ with mp_hands.Hands(
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
     if results.multi_hand_landmarks:
       for hand_landmarks in results.multi_hand_landmarks:
+        index_finger_tip = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
+        index_finger_pip = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_PIP]
+
+        # 画像サイズからピクセル座標に変換
+        h, w, _ = image.shape
+        tip_x, tip_y = int(index_finger_tip.x * w), int(index_finger_tip.y * h)
+        pip_x, pip_y = int(index_finger_pip.x * w), int(index_finger_pip.y * h)
+
+        # 座標を出力
+        print(f"Index Finger Tip: ({tip_x}, {tip_y})")
+        print(f"Index Finger PIP: ({pip_x}, {pip_y})")
+
         mp_drawing.draw_landmarks(
             image,
             hand_landmarks,
